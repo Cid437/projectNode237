@@ -13,3 +13,11 @@ git init -y
 ni index.js (new item, ni is used for windows)
 npm install express
 
+-- Install dependencies
+npm install express mysql2 dotenv cors bcrypt jsonwebtoken multer nodemailer pdfkit
+npm install -D nodemon
+
+-- Create empty folders for structure and server.js
+mkdir routes,controllers,models,middleware,config,public,views,utils
+ni server.js
+
