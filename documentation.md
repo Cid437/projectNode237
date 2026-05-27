@@ -21,3 +21,5 @@ npm install -D nodemon
 mkdir routes,controllers,models,middleware,config,public,views,utils
 ni server.js
 
+-- add codes and run
+node server.js
