@@ -23,3 +23,6 @@ ni server.js
 
 -- add codes and run
 node server.js
+
+-- dotenv
+npm install dotenv
