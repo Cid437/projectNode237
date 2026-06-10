@@ -18,16 +18,16 @@ transactions CRUD api and jquery front end. the sample UI implementation will ha
 send an email when updating the transaction 5pts
 send an email when updating the transaction. attach the receipt with order details in pdf 10pts
 
-quiz 1 15pts
-Jquery validation for mp4 and mp5
+quiz 4 15pts
+Jquery validation for mp3 and mp4
 
-quiz 2 15pts
+quiz 5 15pts
 jquery/api search/autocomplete on homepage. 
 
-quiz 3 15pts
+quiz 6 15pts
 route protection. add a middleware to check a user's role. only admin roles can access crud api.   
 
-quiz 4 15pts
+quiz 7 15pts
 three(3) js charts. bar line and pie charts 
 
 unit test 1 20pts
@@ -50,5 +50,5 @@ always check for updates
 
 June 2 submission of project proposal
 june 2 quiz 1 javascript
-june 10 unit 1 test jquery nodejs
-june 16 quiz 2 nodejs
+june 10 quiz 2 jquery nodejs
+june 16 quiz 3 nodejs
