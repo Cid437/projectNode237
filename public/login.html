@@ -22,33 +22,7 @@
 
 <div id="result"></div>
 
-<script>
-
-$(function(){
-    $("#header").load("header.html");
-});
-
-$("#loginForm").submit(function(e){
-
-    e.preventDefault();
-
-    $.ajax({
-        url:"/api/login",
-        method:"POST",
-        contentType:"application/json",
-        data:JSON.stringify({
-            email:$("#email").val(),
-            password:$("#password").val()
-        }),
-        success:function(data){
-            localStorage.setItem("token",data.token);
-            $("#result").html("Login Successful");
-        }
-    });
-
-});
-
-</script>
+  <script src="js/login.js"></script>
 
 </body>
 </html>

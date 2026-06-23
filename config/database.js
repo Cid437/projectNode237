@@ -8,23 +8,12 @@ const db = mysql.createConnection({
   database: process.env.DB_NAME || 'db',
 });
 
-// attach a connected flag so other parts can check DB status
-db._connected = false;
-
 db.connect((err) => {
   if (err) {
-    db._connected = false;
     console.error('MySQL connection error:', err);
   } else {
-    db._connected = true;
     console.log('MySQL Connected');
   }
-});
-
-// watch for connection errors
-db.on('error', (err) => {
-  console.error('MySQL error event:', err);
-  db._connected = false;
 });
 
 module.exports = db;

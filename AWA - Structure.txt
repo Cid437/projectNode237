@@ -12,10 +12,11 @@ project-root/
 │   ├── database.js
 │
 ├── routes/
-│   ├── authRoutes.js
-│   ├── userRoutes.js
-│   ├── productRoutes.js
-│   └── transactionRoutes.js
+│   ├── category.js
+│   ├── dashboard.js
+│   ├── item.js
+│   ├── order.js
+│   └── user.js
 │
 ├── controllers/
 │   ├── category.js
@@ -31,17 +32,17 @@ project-root/
 │   ├── css/
 │   ├── images/
 │   ├── js/
-│   │   └── cart.html
-│   │   ├── category.html
-│   │   ├── checkout.html
-│   │   ├── header.html
-│   │   ├── home.html
-│   │   ├── item.html
-│   │   ├── login.html
-│   │   ├── myorders.html
-│   │   ├── order.html
-│   │   ├── profile.html
-│   │   ├── register.html
+│   │   └── cart.js
+│   │   ├── category.js
+│   │   ├── checkout.js
+│   │   ├── header.js
+│   │   ├── home.js
+│   │   ├── item.js
+│   │   ├── login.js
+│   │   ├── myorders.js
+│   │   ├── order.js
+│   │   ├── profile.js
+│   │   ├── register.js
 │   │
 │   └── cart.html
 │   ├── category.html

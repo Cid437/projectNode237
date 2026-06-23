@@ -28,23 +28,7 @@ href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
 
 </table>
 
-<script>
-
-$(function(){
-
-$("#header").load("header.html");
-
-$('#categoryTable').DataTable({
-    ajax:'/api/categories',
-    columns:[
-        {data:'id'},
-        {data:'name'}
-    ]
-});
-
-});
-
-</script>
+    <script src="js/category.js"></script>
 
 </body>
 </html>
