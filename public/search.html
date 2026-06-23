@@ -1,1 +1,48 @@
-<!DOCTYPE html><html><body><h1>Search</h1><input id='search'><div id='results'></div></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Search</title>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="header"></div>
+
+<h1>Search</h1>
+
+<input type="text" id="search">
+
+<div id="results"></div>
+
+<script>
+
+$(function(){
+
+$("#header").load("header.html");
+
+$("#search").keyup(function(){
+
+$.get(
+"/api/search?q="+$(this).val(),
+function(data){
+
+let html="";
+
+data.forEach(item=>{
+html+=`<p>${item.name}</p>`;
+});
+
+$("#results").html(html);
+
+});
+
+});
+
+});
+
+</script>
+
+</body>
+</html>

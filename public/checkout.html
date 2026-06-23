@@ -1,1 +1,35 @@
-<!DOCTYPE html><html><body><h1>Checkout</h1><form id='checkoutForm'></form></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Checkout</title>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="header"></div>
+
+<h1>Checkout</h1>
+
+<form>
+
+<input type="text"
+placeholder="Shipping Address">
+
+<br><br>
+
+<button>
+Place Order
+</button>
+
+</form>
+
+<script>
+$(function(){
+$("#header").load("header.html");
+});
+</script>
+
+</body>
+</html>

@@ -1,1 +1,37 @@
-<!DOCTYPE html><html><body><h1>Profile</h1><div id='profile'></div></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Profile</title>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="header"></div>
+
+<h1>My Profile</h1>
+
+<div id="profile"></div>
+
+<script>
+
+$(function(){
+
+$("#header").load("header.html");
+
+$.get("/api/profile",function(data){
+
+$("#profile").html(`
+<p>Name: ${data.name}</p>
+<p>Email: ${data.email}</p>
+`);
+
+});
+
+});
+
+</script>
+
+</body>
+</html>

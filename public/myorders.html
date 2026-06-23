@@ -1,1 +1,46 @@
-<!DOCTYPE html><html><body><h1>My Orders</h1><table id='ordersTable'></table></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>My Orders</title>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="header"></div>
+
+<h1>My Orders</h1>
+
+<div id="orders"></div>
+
+<script>
+
+$(function(){
+
+$("#header").load("header.html");
+
+$.get("/api/orders",function(data){
+
+let html="";
+
+data.forEach(order=>{
+
+html+=`
+<div>
+Order #${order.id}
+</div>
+`;
+
+});
+
+$("#orders").html(html);
+
+});
+
+});
+
+</script>
+
+</body>
+</html>
