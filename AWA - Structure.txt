@@ -1,0 +1,78 @@
+STRUCTURE REQUIREMENTS:
+
+project-root/
+│
+├── app.js
+├── index.js
+├── package.json
+├── .env
+├── .gitignore
+│
+├── config/
+│   ├── database.js
+│
+├── routes/
+│   ├── authRoutes.js
+│   ├── userRoutes.js
+│   ├── productRoutes.js
+│   └── transactionRoutes.js
+│
+├── controllers/
+│   ├── category.js
+│   ├── dashboard.js
+│   ├── item.js
+│   └── users.js
+│
+├── middleware/
+│   ├── auth.js
+│   └── upload.js
+│
+├── public/
+│   ├── css/
+│   ├── images/
+│   ├── js/
+│   │   └── cart.html
+│   │   ├── category.html
+│   │   ├── checkout.html
+│   │   ├── header.html
+│   │   ├── home.html
+│   │   ├── item.html
+│   │   ├── login.html
+│   │   ├── myorders.html
+│   │   ├── order.html
+│   │   ├── profile.html
+│   │   ├── register.html
+│   │
+│   └── cart.html
+│   ├── category.html
+│   ├── checkout.html
+│   ├── header.html
+│   ├── home.html
+│   ├── item.html
+│   ├── login.html
+│   ├── myorders.html
+│   ├── order.html
+│   ├── profile.html
+│   ├── register.html
+│   ├── review.html
+│   └── search.html
+│
+└── utils/
+    ├── multer.js
+    └── sendEmail.js
+
+ADDITIONAL REQUIREMENTS:
+- Use async/await
+- Use clean coding practices
+- Separate routes, controllers, and models properly
+- Add comments explaining important parts
+- Add sample CRUD endpoints
+- Include middleware usage examples
+- Include JWT authentication example
+- Include MySQL connection setup
+- Include Multer configuration
+- Include Nodemailer configuration
+- Include PDF generation example
+- Include sample AJAX requests for frontend
+- Include sample DataTable initialization
+- Include sample Chart.js implementation
