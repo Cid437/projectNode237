@@ -2,28 +2,25 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Cart</title>
+<link rel="stylesheet" href="css/style.css">
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="js/common.js"></script>
+<script src="js/cart.js"></script>
 </head>
 <body>
-
 <div id="header"></div>
-
-<h1>Shopping Cart</h1>
-
-<div id="cartItems"></div>
-
-<button id="checkoutBtn">
-Checkout
-</button>
-
+<main class="container">
+    <h1>Shopping Cart</h1>
+    <div id="cartItems"></div>
+    <h3>Total: <span id="cartTotal">0.00</span></h3>
+    <button id="checkoutBtn">Checkout</button>
+</main>
 <script>
-
-$(function(){
-$("#header").load("header.html");
+$(function () {
+    $('#header').load('header.html');
 });
-
 </script>
-
 </body>
 </html>

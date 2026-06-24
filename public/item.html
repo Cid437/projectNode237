@@ -1,1 +1,47 @@
-<!DOCTYPE html><html><body><h1>Item Details</h1><div id='item'></div></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Items</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/jquery.dataTables.min.css">
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+<script src="js/common.js"></script>
+<script src="js/item.js"></script>
+</head>
+<body>
+<div id="header"></div>
+<main class="container">
+    <h1>Item CRUD</h1>
+    <form id="itemForm" enctype="multipart/form-data">
+        <input type="hidden" id="itemId" name="itemId">
+        <input type="text" id="name" name="name" placeholder="Name" required>
+        <textarea id="description" name="description" placeholder="Description"></textarea>
+        <input type="number" step="0.01" id="price" name="price" placeholder="Price" required>
+        <input type="number" id="stock" name="stock" placeholder="Stock" required>
+        <input type="file" id="images" name="images" accept="image/*" multiple>
+        <button type="submit" id="itemSubmit">Save Item</button>
+    </form>
+    <br>
+    <table id="itemsTable">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Price</th>
+                <th>Stock</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+    </table>
+</main>
+<script>
+$(function () {
+    $('#header').load('header.html');
+});
+</script>
+</body>
+</html>
