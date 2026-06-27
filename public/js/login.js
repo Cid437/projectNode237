@@ -14,10 +14,11 @@ $(function () {
       }),
       success: function (data) {
         localStorage.setItem('token', data.token);
-        $('#result').html('Login Successful');
+        $('#result').html('Login successful. You may now refresh the admin or profile page.');
       },
-      error: function () {
-        $('#result').html('Login failed.');
+      error: function (xhr) {
+        const message = xhr?.responseJSON?.message || 'Login failed.';
+        $('#result').html(message);
       },
     });
   });

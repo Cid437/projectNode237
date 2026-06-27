@@ -6,6 +6,7 @@ const categoryRoutes = require('./routes/category');
 const itemRoutes = require('./routes/item');
 const orderRoutes = require('./routes/order');
 const dashboardRoutes = require('./routes/dashboard');
+const adminRoutes = require('./routes/admin');
 
 const app = express();
 
@@ -28,5 +29,6 @@ app.use('/api', categoryRoutes);
 app.use('/api', itemRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/admin', adminRoutes);
 
 module.exports = app
