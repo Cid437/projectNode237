@@ -1,0 +1,76 @@
+project/
+│
+├── backend/
+│   ├── config/
+│   │   └── database.js
+│   │
+│   ├── controllers/
+│   │   ├── authController.js
+│   │   ├── categoryController.js
+│   │   ├── itemController.js
+│   │   ├── orderController.js
+│   │   ├── userController.js
+│   │   └── dashboardController.js
+│   │
+│   ├── middleware/
+│   │   ├── authMiddleware.js
+│   │   └── adminMiddleware.js
+│   │
+│   ├── models/
+│   │   ├── User.js
+│   │   ├── Category.js
+│   │   ├── Item.js
+│   │   ├── Order.js
+│   │   └── OrderItem.js
+│   │
+│   ├── routes/
+│   │   ├── authRoutes.js
+│   │   ├── categoryRoutes.js
+│   │   ├── itemRoutes.js
+│   │   ├── orderRoutes.js
+│   │   ├── userRoutes.js
+│   │   └── dashboardRoutes.js
+│   │
+│   ├── uploads/
+│   │   └── products/
+│   │
+│   ├── utils/
+│   │   ├── multer.js
+│   │   └── sendEmail.js
+│   │
+│   ├── app.js
+│   ├── index.js
+│   ├── package.json
+│   └── .env
+│
+├── frontend/
+│   ├── css/
+│   │   ├── style.css
+│   │   └── dashboard.css
+│   │
+│   ├── js/
+│   │   ├── home.js
+│   │   ├── login.js
+│   │   ├── register.js
+│   │   ├── cart.js
+│   │   ├── profile.js
+│   │   ├── dashboard.js
+│   │   ├── item.js
+│   │   └── helpers.js
+│   │
+│   ├── images/
+│   │
+│   ├── header.html
+│   ├── footer.html
+│   │
+│   ├── home.html
+│   ├── login.html
+│   ├── register.html
+│   ├── cart.html
+│   ├── checkout.html
+│   ├── profile.html
+│   ├── dashboard.html
+│   ├── items.html
+│   └── users.html
+│
+└── requirements.txt

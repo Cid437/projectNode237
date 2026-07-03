@@ -1,0 +1,6 @@
+- git init
+- git add .
+- git commit -m "initial commit"
+- git remote add origin https://github.com/Cid437/projectNode237.git
+- git fetch origin
+- git switch split
