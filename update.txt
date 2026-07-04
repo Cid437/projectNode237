@@ -81,6 +81,7 @@ This document lists everything that was modified during the implementation and f
 - Replace backend index.js port from 3000 to 4000
 - app.js express add path to front end folder
 - index.js test database connection code
+- Checklist.txt to see which ones are working and not
 
 10. Frontend JavaScript structure alignment
 - Added the missing frontend JavaScript files expected by the desired project structure:

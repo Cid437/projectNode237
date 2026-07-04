@@ -1,0 +1,13 @@
+# Admin
+- Item Crud ✅
+- User Crud ✅
+
+
+# User
+- Cart Crud ❌
+
+
+# Concerns
+- Empty profile details after logging in
+- User can add to cart but cannot checkout/create order
+- Front end to be fixed
