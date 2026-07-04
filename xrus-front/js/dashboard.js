@@ -104,7 +104,6 @@ $(document).ready(function () {
         },
         success: function (data) {
             console.log(data);
-            const { values, labels } = data
             const { rows } = data
             var ctx = $("#salesChart");
             new Chart(ctx, {

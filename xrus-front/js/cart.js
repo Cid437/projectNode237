@@ -1,5 +1,13 @@
 $(document).ready(function () {
-    const url = 'http://localhost:4000/'
+    const url = 'http://localhost:4000'
+    const buildImageUrl = (image) => {
+        if (!image) return '';
+        if (/^https?:\/\//i.test(image)) return image;
+        if (image.startsWith('/')) return `${url}${image}`;
+        if (image.startsWith('images/')) return `${url}/${image}`;
+        return `${url}/images/${image}`;
+    }
+
     function getCart() {
         let cart = localStorage.getItem('cart');
         return cart ? JSON.parse(cart) : [];
@@ -33,7 +41,7 @@ $(document).ready(function () {
                 let subtotal = price * item.quantity;
                 total += subtotal;
                 html += `<tr>
-                    <td><img src="${item.image}" width="60"></td>
+                    <td><img src="${buildImageUrl(item.image)}" width="60"></td>
                     <td>${item.description}</td>
                     <td>₱ ${price.toFixed(2)}</td>
                     <td>
@@ -115,12 +123,13 @@ $(document).ready(function () {
 
         console.log(JSON.stringify(cart));
 
-        const payload = JSON.stringify({ cart, payment_method: 'Cash' });
+        const userId = sessionStorage.getItem('userId');
+        const payload = JSON.stringify({ cart, userId, payment_method: 'Cash' });
         const token = getToken();
         if (token) {
             $.ajax({
                 type: "POST",
-                url: `${url}api/v1/create-order`,
+                url: `${url}/api/v1/create-order`,
                 data: payload,
                 dataType: "json",
                 processData: false,

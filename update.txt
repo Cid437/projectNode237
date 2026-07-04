@@ -1,4 +1,4 @@
-Update Log - 2026-07-04
+Update Log - 07-04-2026
 
 This document lists everything that was modified during the implementation and fixes for the Xrus web app.
 
@@ -72,3 +72,21 @@ This document lists everything that was modified during the implementation and f
 - Verified that the admin login endpoint works.
 - Verified that the item listing endpoint returns data from the database.
 - Verified that the protected admin user routes respond correctly.
+
+
+- - - - - - -  - - - - - - - - - - - - - - - - - -
+7/4/2026 - 10pm
+
+9. Connection troubleshooting using express
+- Replace backend index.js port from 3000 to 4000
+- app.js express add path to front end folder
+- index.js test database connection code
+
+10. Frontend JavaScript structure alignment
+- Added the missing frontend JavaScript files expected by the desired project structure:
+  - xrus-front/js/login.js
+  - xrus-front/js/register.js
+  - xrus-front/js/profile.js
+  - xrus-front/js/helpers.js
+- Kept the new scripts consistent with the existing jQuery and Swal patterns already used in the project.
+- Followed the current frontend naming and coding style without introducing extra files.

@@ -1,5 +1,12 @@
 $(document).ready(function () {
     const url = 'http://localhost:4000';
+    const buildImageUrl = (image) => {
+        if (!image) return '';
+        if (/^https?:\/\//i.test(image)) return image;
+        if (image.startsWith('/')) return `${url}${image}`;
+        if (image.startsWith('images/')) return `${url}/${image}`;
+        return `${url}/images/${image}`;
+    };
     const role = sessionStorage.getItem('role') || 'customer';
 
     $('#home').load('header.html', function () {
@@ -47,7 +54,7 @@ $(document).ready(function () {
                 body.html(rows.map(item => `
                     <tr>
                         <td>${item.id}</td>
-                        <td><img src="${item.image ? `${url}/${item.image}` : ''}" width="50" height="60"></td>
+                        <td><img src="${buildImageUrl(item.image)}" width="50" height="60"></td>
                         <td>${item.name || ''}</td>
                         <td>${item.description || ''}</td>
                         <td>₱ ${Number(item.buy_price || 0).toFixed(2)}</td>
@@ -144,7 +151,7 @@ $(document).ready(function () {
                 $('#itemCategoryId').val(item.category_id || 1);
                 $('#itemImagePreview').remove();
                 if (item.image) {
-                    $('#iform').append(`<img id="itemImagePreview" src="${url}/${item.image}" width="120" class="mt-2" />`);
+                    $('#iform').append(`<img id="itemImagePreview" src="${buildImageUrl(item.image)}" width="120" class="mt-2" />`);
                 }
             },
             error: function (error) {
