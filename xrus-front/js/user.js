@@ -1,7 +1,7 @@
 $(document).ready(function () {
-    const url = 'http://192.168.68.107:4000/'
+    const url = 'http://localhost:4000/'
 
-    $("#register").on('click', function (e) {
+    $("#registerForm").on('submit', function (e) {
         e.preventDefault();
         let name = $("#name").val()
         let email = $("#email").val()
@@ -9,7 +9,8 @@ $(document).ready(function () {
         let user = {
             name,
             email,
-            password
+            password,
+            username: email.split('@')[0]
         }
         $.ajax({
             method: "POST",
@@ -20,15 +21,21 @@ $(document).ready(function () {
             dataType: "json",
             success: function (data) {
                 console.log(data);
+                $("#registerForm")[0].reset();
                 Swal.fire({
                     icon: "success",
-                    text: "register success",
+                    text: data.message || "register success",
                     position: 'bottom-right'
 
                 });
             },
             error: function (error) {
                 console.log(error);
+                Swal.fire({
+                    icon: "error",
+                    text: error.responseJSON?.message || error.responseJSON?.error || 'Registration failed',
+                    position: 'bottom-right'
+                });
             }
         });
     });
@@ -46,7 +53,7 @@ $(document).ready(function () {
         }
     });
 
-    $("#login").on('click', function (e) {
+    $("#loginForm").on('submit', function (e) {
         e.preventDefault();
 
         let email = $("#email").val()
@@ -65,16 +72,16 @@ $(document).ready(function () {
             success: function (data) {
                 console.log(data);
                 Swal.fire({
-                    text: data.success,
+                    text: data.message || 'Login successful',
                     showConfirmButton: false,
                     position: 'bottom-right',
                     timer: 1000,
                     timerProgressBar: true
 
                 });
-                // sessionStorage.setItem('token', JSON.stringify(data.access_token))
-                sessionStorage.setItem('token', JSON.stringify(data.token))
-                sessionStorage.setItem('userId', JSON.stringify(data.user.id))
+                sessionStorage.setItem('token', data.token)
+                sessionStorage.setItem('userId', String(data.user.id))
+                sessionStorage.setItem('role', data.user.role || 'customer')
 
                 window.location.href = 'profile.html'
             },
@@ -82,7 +89,7 @@ $(document).ready(function () {
                 console.log(error);
                 Swal.fire({
                     icon: "error",
-                    text: error.responseJSON.message,
+                    text: error.responseJSON?.message || error.responseJSON?.error || 'Login failed',
                     showConfirmButton: false,
                     position: 'bottom-right',
                     timer: 1000,
@@ -93,14 +100,29 @@ $(document).ready(function () {
         });
     });
 
-    $("#updateBtn").on('click', function (event) {
+    $("#profileForm").on('submit', function (event) {
         event.preventDefault();
-        userId = sessionStorage.getItem('userId') ?? sessionStorage.getItem('userId')
+        let userId = sessionStorage.getItem('userId')
+        let token = sessionStorage.getItem('token')
+
+        if (!token || !userId) {
+            Swal.fire({
+                icon: 'warning',
+                text: 'You must be logged in to update your profile.',
+                position: 'bottom-right'
+            });
+            return;
+        }
+        token = token.replace(/^"|"$/g, '');
 
         var data = $('#profileForm')[0];
 
         let formData = new FormData(data);
         formData.append('userId', userId)
+        formData.append('fname', $('#firstName').val())
+        formData.append('lname', $('#lastName').val())
+        formData.append('addressline', $('#address').val())
+        formData.append('phone', $('#phone').val())
 
         $.ajax({
             method: "POST",
@@ -109,11 +131,24 @@ $(document).ready(function () {
             contentType: false,
             processData: false,
             dataType: "json",
+            headers: {
+                "Authorization": "Bearer " + token
+            },
             success: function (data) {
                 console.log(data);
+                Swal.fire({
+                    icon: "success",
+                    text: data.message || 'Profile updated',
+                    position: 'bottom-right'
+                });
             },
             error: function (error) {
                 console.log(error);
+                Swal.fire({
+                    icon: "error",
+                    text: error.responseJSON?.message || error.responseJSON?.error || 'Profile update failed',
+                    position: 'bottom-right'
+                });
             }
         });
     });
@@ -142,6 +177,7 @@ $(document).ready(function () {
                 });
                 sessionStorage.removeItem('userId')
                 sessionStorage.removeItem('token')
+                sessionStorage.removeItem('role')
                 window.location.href = 'home.html'
             },
             error: function (error) {
@@ -162,31 +198,36 @@ $(document).ready(function () {
         });
         sessionStorage.removeItem('token')
         sessionStorage.removeItem('userId')
+        sessionStorage.removeItem('role')
         window.location.href = 'login.html'
 
     });
 
     $("#profile").load("header.html", function () {
-        // After header is loaded, check sessionStorage for userId
-        if (sessionStorage.getItem('token')) {
-            // Change Login link to Logout
-            const $loginLink = $('a.nav-link[href="login.html"]');
-            $loginLink.text('Logout').attr({ 'href': '#!', 'id': 'logout-link' }).on('click', function (e) {
-                e.preventDefault();
-                Swal.fire({
-                    text: 'logout',
-                    showConfirmButton: false,
-                    position: 'bottom-right',
-                    timer: 1000,
-                    timerProgressBar: true
+        const token = sessionStorage.getItem('token');
+        const userId = sessionStorage.getItem('userId');
 
-                });
-                sessionStorage.clear();
-                window.location.href = 'login.html';
-            });
-        }
-        else {
+        if (!token || !userId) {
             window.location.href = 'login.html';
+            return;
         }
+
+        const role = sessionStorage.getItem('role') || 'customer';
+        $('.admin-only').toggle(role === 'admin');
+
+        const $loginLink = $('a.nav-link[href="login.html"]');
+        $loginLink.text('Logout').attr({ 'href': '#!', 'id': 'logout-link' }).on('click', function (e) {
+            e.preventDefault();
+            Swal.fire({
+                text: 'logout',
+                showConfirmButton: false,
+                position: 'bottom-right',
+                timer: 1000,
+                timerProgressBar: true
+
+            });
+            sessionStorage.clear();
+            window.location.href = 'login.html';
+        });
     });
 })

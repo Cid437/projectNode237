@@ -2,211 +2,92 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>items</title>
-    <!-- Latest compiled and minified CSS -->
-    <link
-      rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css"
-      integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
-      crossorigin="anonymous"
-    />
-
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.21/css/dataTables.bootstrap4.min.css"
-      integrity="sha512-PT0RvABaDhDQugEbpNMwgYBCnGCiTZMh9yOzUsJHDgl/dMhD9yjHAwoumnUk3JydV3QTcIkNDuN40CJxik5+WQ=="
-      crossorigin="anonymous"
-      referrerpolicy="no-referrer"
-    />
-    <link
-      href="https://use.fontawesome.com/releases/v5.0.6/css/all.css"
-      rel="stylesheet"
-    />
-    <link
-      href="https://cdn.datatables.net/buttons/2.3.5/css/buttons.dataTables.min.css"
-      rel="stylesheet"
-    />
-
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/datatables.net-buttons-bs5/2.3.6/buttons.bootstrap5.min.css"
-      integrity="sha512-vWTrt2A9iAn2pK8hNZS26YZRDDUvLiOfyL+MmBEXJizrigtxnpLuLrLOOMm+pcrUJFzGssUwoS6Gofp+TT2deQ=="
-      crossorigin="anonymous"
-      referrerpolicy="no-referrer"
-    />
-    <link
-      rel="stylesheet"
-      href="https://unpkg.com/dropzone@5/dist/min/dropzone.min.css"
-      type="text/css"
-    />
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.16.1/sweetalert2.css"
-      integrity="sha512-fjO3Vy3QodX9c6G9AUmr6WuIaEPdGRxBjD7gjatG5gGylzYyrEq3U0q+smkG6CwIY0L8XALRFHh4KPHig0Q1ug=="
-      crossorigin="anonymous"
-      referrerpolicy="no-referrer"
-    />
-    <script
-      src="https://code.jquery.com/jquery-3.6.4.min.js"
-      integrity="sha256-oP6HI9z1XaZNBrJURtCoUT5SUnxFr8s3BzRl+cbzUq8="
-      crossorigin="anonymous"
-    ></script>
-    <script
-      src="https://cdn.jsdelivr.net/npm/popper.js@1.12.9/dist/umd/popper.min.js"
-      integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
-      crossorigin="anonymous"
-    ></script>
-    <script
-      src="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/js/bootstrap.min.js"
-      integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
-      crossorigin="anonymous"
-    ></script>
-    <script
-      src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.21/js/jquery.dataTables.min.js"
-      integrity="sha512-BkpSL20WETFylMrcirBahHfSnY++H2O1W+UnEEO4yNIl+jI2+zowyoGJpbtk6bx97fBXf++WJHSSK2MV4ghPcg=="
-      crossorigin="anonymous"
-      referrerpolicy="no-referrer"
-    ></script>
-    <script
-      type="text/javascript"
-      src="https://cdn.datatables.net/1.10.22/js/dataTables.bootstrap4.min.js"
-    ></script>
-    <script
-      type="text/javascript"
-      src="https://cdn.datatables.net/buttons/1.6.5/js/dataTables.buttons.min.js"
-    ></script>
-    <script
-      type="text/javascript"
-      src="https://cdn.datatables.net/buttons/1.6.5/js/buttons.bootstrap4.min.js"
-    ></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.32/vfs_fonts.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.3.5/js/buttons.html5.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.3/Chart.min.js"></script>
-
-    <script
-      src="https://cdnjs.cloudflare.com/ajax/libs/bootbox.js/5.5.2/bootbox.min.js"
-      integrity="sha512-RdSPYh1WA6BF0RhpisYJVYkOyTzK4HwofJ3Q7ivt/jkpW6Vc8AurL1R+4AUcvn9IwEKAPm/fk7qFZW3OuiUDeg=="
-      crossorigin="anonymous"
-      referrerpolicy="no-referrer"
-    ></script>
-    <script
-      src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.min.js"
-      integrity="sha512-L0Shl7nXXzIlBSUUPpxrokqq4ojqgZFQczTYlGjzONGTDAcLremjwaWv5A+EDLnxhQzY5xUZPWLOLqYRkY0Cbw=="
-      crossorigin="anonymous"
-      referrerpolicy="no-referrer"
-    ></script>
-    <script
-      src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.16.1/sweetalert2.min.js"
-      integrity="sha512-LGHBR+kJ5jZSIzhhdfytPoEHzgaYuTRifq9g5l6ja6/k9NAOsAi5dQh4zQF6JIRB8cAYxTRedERUF+97/KuivQ=="
-      crossorigin="anonymous"
-      referrerpolicy="no-referrer"
-    ></script>
-
+    <title>Items</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.21/css/dataTables.bootstrap4.min.css" />
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.6/css/all.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.16.1/sweetalert2.css" />
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.12.9/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/js/bootstrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootbox.js/5.5.2/bootbox.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.16.1/sweetalert2.min.js"></script>
     <script src="js/item.js"></script>
   </head>
-
   <body>
     <div id="home"></div>
     <div id="items" class="container">
-      <button
-        type="button"
-        class="btn btn-info btn-lg"
-        data-toggle="modal"
-        data-target="#itemModal"
-      >
-        add<span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
-      </button>
-      <div class="card-body" style="height: 210px">
-        <input type="text" id="itemSearch" placeholder="--search--" />
+      <button type="button" class="btn btn-info btn-lg" data-toggle="modal" data-target="#itemModal">Add Item</button>
+      <div class="card-body mt-3">
+        <input type="text" id="itemSearch" class="form-control" placeholder="Search items" />
       </div>
-      <div class="table-responsive">
+      <div class="table-responsive mt-3">
         <table id="itable" class="table table-striped table-hover">
           <thead>
             <tr>
-              <th>item ID</th>
+              <th>ID</th>
               <th>Image</th>
-              <th>description</th>
-              <th>sell price</th>
-              <th>cost price</th>
-              <th>quantity</th>
-              <th>action</th>
+              <th>Name</th>
+              <th>Description</th>
+              <th>Buy Price</th>
+              <th>Sell Price</th>
+              <th>Stock</th>
+              <th>Action</th>
             </tr>
           </thead>
           <tbody id="ibody"></tbody>
         </table>
       </div>
     </div>
+
     <div class="modal fade" id="itemModal" role="dialog" style="display: none">
       <div class="modal-dialog modal-lg">
         <div class="modal-content">
           <div class="modal-header">
-            <h4 class="modal-title">Create new item</h4>
-            <button
-              type="button"
-              class="btn-close"
-              data-bs-dismiss="modal"
-              aria-label="Close"
-            ></button>
+            <h4 class="modal-title">Item Form</h4>
+            <button type="button" class="close" data-dismiss="modal">&times;</button>
           </div>
           <div class="modal-body">
             <form id="iform">
+              <input type="hidden" id="itemId" name="item_id" />
               <div class="form-group">
-                <label for="desc" class="control-label">Description</label>
-                <input
-                  type="text"
-                  class="form-control"
-                  id="desc"
-                  name="description"
-                />
+                <label for="itemName" class="control-label">Name</label>
+                <input type="text" class="form-control" id="itemName" name="name" />
               </div>
               <div class="form-group">
-                <label for="sell" class="control-label">sell price</label>
-                <input
-                  type="text"
-                  class="form-control"
-                  id="sell"
-                  name="sell_price"
-                />
+                <label for="itemDescription" class="control-label">Description</label>
+                <input type="text" class="form-control" id="itemDescription" name="description" />
               </div>
               <div class="form-group">
-                <label for="cost" class="control-label">Cost Price</label>
-                <input
-                  type="text"
-                  class="form-control"
-                  id="cost"
-                  name="cost_price"
-                />
+                <label for="itemBrand" class="control-label">Brand</label>
+                <input type="text" class="form-control" id="itemBrand" name="brand" />
               </div>
               <div class="form-group">
-                <label for="qty" class="control-label">quantity</label>
-                <input
-                  type="text"
-                  class="form-control"
-                  id="qty"
-                  name="quantity"
-                />
+                <label for="itemBuyPrice" class="control-label">Buy Price</label>
+                <input type="number" step="0.01" class="form-control" id="itemBuyPrice" name="buy_price" />
               </div>
               <div class="form-group">
-                <label for="img" class="control-label">Image</label>
-                <input type="file" class="form-control" id="img" name="image" />
+                <label for="itemSellPrice" class="control-label">Sell Price</label>
+                <input type="number" step="0.01" class="form-control" id="itemSellPrice" name="sell_price" />
+              </div>
+              <div class="form-group">
+                <label for="itemStock" class="control-label">Stock</label>
+                <input type="number" class="form-control" id="itemStock" name="stock" />
+              </div>
+              <div class="form-group">
+                <label for="itemCategoryId" class="control-label">Category ID</label>
+                <input type="number" class="form-control" id="itemCategoryId" name="category_id" value="1" />
+              </div>
+              <div class="form-group">
+                <label for="itemImage" class="control-label">Image</label>
+                <input type="file" class="form-control" id="itemImageInput" name="image" />
               </div>
             </form>
           </div>
           <div class="modal-footer">
-            <button
-              type="button"
-              class="btn btn-secondary"
-              data-bs-dismiss="modal"
-            >
-              Close
-            </button>
-            <button id="itemSubmit" type="submit" class="btn btn-primary">
-              Save
-            </button>
-            <button id="itemUpdate" type="submit" class="btn btn-primary">
-              Update
-            </button>
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            <button id="itemSubmit" type="submit" class="btn btn-primary">Save</button>
+            <button id="itemUpdate" type="submit" class="btn btn-primary">Update</button>
           </div>
         </div>
       </div>

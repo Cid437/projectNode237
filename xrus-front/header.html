@@ -1,5 +1,5 @@
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
-  <a class="navbar-brand" href="#">MyShop</a>
+  <a class="navbar-brand" href="home.html">MyShop</a>
   <button
     class="navbar-toggler"
     type="button"
@@ -17,7 +17,19 @@
         <a class="nav-link" href="home.html">Home</a>
       </li>
       <li class="nav-item">
+        <a class="nav-link" href="cart.html">Cart</a>
+      </li>
+      <li class="nav-item">
         <a class="nav-link" href="profile.html">Profile</a>
+      </li>
+      <li class="nav-item admin-only" style="display:none">
+        <a class="nav-link" href="item.html">Items</a>
+      </li>
+      <li class="nav-item admin-only" style="display:none">
+        <a class="nav-link" href="dashboard.html">Dashboard</a>
+      </li>
+      <li class="nav-item admin-only" style="display:none">
+        <a class="nav-link" href="users.html">Users</a>
       </li>
       <li class="nav-item">
         <a class="nav-link" href="register.html">Register</a>
@@ -25,7 +37,33 @@
       <li class="nav-item" id="log">
         <a class="nav-link" href="login.html">Login</a>
       </li>
-
     </ul>
   </div>
 </nav>
+<script>
+  (function applyHeaderState() {
+    const role = sessionStorage.getItem('role') || 'customer';
+    document.querySelectorAll('.admin-only').forEach(function (el) {
+      el.style.display = role === 'admin' ? '' : 'none';
+    });
+
+    const loginLink = document.querySelector('a.nav-link[href="login.html"]');
+    if (loginLink) {
+      const token = sessionStorage.getItem('token');
+      const userId = sessionStorage.getItem('userId');
+      if (token && userId) {
+        loginLink.textContent = 'Logout';
+        loginLink.href = '#!';
+        loginLink.onclick = function (e) {
+          e.preventDefault();
+          sessionStorage.clear();
+          window.location.href = 'login.html';
+        };
+      } else {
+        loginLink.textContent = 'Login';
+        loginLink.href = 'login.html';
+        loginLink.onclick = null;
+      }
+    }
+  })();
+</script>

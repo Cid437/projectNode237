@@ -1,67 +1,63 @@
-const db = require('../models');
-const Item = db.Item;
-const Stock = db.Stock;
+const sequelize = require('../config/database');
 
-// Get all items with stock
 exports.getAllItems = async (req, res) => {
     try {
-        const items = await Item.findAll({
-            include: [{ model: Stock }]
-        });
-        return res.status(200).json({ rows: items });
+        const [rows] = await sequelize.query(
+            'SELECT i.id, i.category_id, i.name, i.description, i.brand, i.buy_price, i.sell_price, i.stock, i.image, i.status, i.created_at, i.updated_at, c.name AS category_name FROM items i LEFT JOIN categories c ON i.category_id = c.id ORDER BY i.id DESC'
+        );
+
+        return res.status(200).json({ rows });
     } catch (error) {
         console.log(error);
-        return res.status(500).json({ error: 'Error fetching items' });
+        return res.status(500).json({ error: 'Error fetching items', details: error.message });
     }
 };
 
-// Get single item with stock
 exports.getSingleItem = async (req, res) => {
     try {
-        const item = await Item.findByPk(req.params.id, {
-            include: [{ model: Stock }]
-        });
+        const [rows] = await sequelize.query(
+            'SELECT i.id, i.category_id, i.name, i.description, i.brand, i.buy_price, i.sell_price, i.stock, i.image, i.status, i.created_at, i.updated_at, c.name AS category_name FROM items i LEFT JOIN categories c ON i.category_id = c.id WHERE i.id = ? LIMIT 1',
+            { replacements: [req.params.id] }
+        );
 
-        if (!item) {
+        if (!rows.length) {
             return res.status(404).json({ success: false, message: 'Item not found' });
         }
 
-        return res.status(200).json({ success: true, result: item });
+        return res.status(200).json({ success: true, result: rows[0] });
     } catch (error) {
         console.log(error);
-        return res.status(500).json({ error: 'Error fetching item' });
+        return res.status(500).json({ error: 'Error fetching item', details: error.message });
     }
 };
 
-// Create item with stock
-exports.createItem = async (req, res, next) => {
+exports.createItem = async (req, res) => {
     try {
-        const { description, cost_price, sell_price, quantity } = req.body;
-        let imagePath = req.file?.path.replace(/\\/g, "/");
+        const { name, description, brand, buy_price, sell_price, stock, category_id, status = 'active' } = req.body;
+        const imagePath = req.file ? req.file.path.replace(/\\/g, '/') : null;
 
-        if (!description || !cost_price || !sell_price) {
+        if (!name || !buy_price || !sell_price) {
             return res.status(400).json({ error: 'Missing required fields' });
         }
 
-        const item = await Item.create({
-            description,
-            cost_price,
-            sell_price,
-            img_path: imagePath,
-            created_at: Date.now()
-        });
-
-        const stock = await Stock.create({
-            item_id: item.item_id,
-            quantity: quantity || 0
-        });
+        const [result] = await sequelize.query(
+            'INSERT INTO items (category_id, name, description, brand, buy_price, sell_price, stock, image, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            {
+                replacements: [category_id || 1, name, description || '', brand || '', buy_price, sell_price, stock || 0, imagePath, status]
+            }
+        );
 
         return res.status(201).json({
             success: true,
-            itemId: item.item_id,
+            itemId: result.insertId,
             image: imagePath,
-            quantity,
-            item
+            item: {
+                id: result.insertId,
+                name,
+                description,
+                sell_price,
+                stock: stock || 0
+            }
         });
     } catch (error) {
         console.log(error);
@@ -69,30 +65,23 @@ exports.createItem = async (req, res, next) => {
     }
 };
 
-// Update item
-exports.updateItem = async (req, res, next) => {
+exports.updateItem = async (req, res) => {
     try {
         const { id } = req.params;
-        const { description, cost_price, sell_price, quantity } = req.body;
-        let imagePath = req.file?.path.replace(/\\/g, "/");
+        const { name, description, brand, buy_price, sell_price, stock, category_id, status = 'active' } = req.body;
 
-        if (!description || !cost_price || !sell_price) {
+        if (!name || !buy_price || !sell_price) {
             return res.status(400).json({ error: 'Missing required fields' });
         }
 
-        await Item.update(
-            {
-                description,
-                cost_price,
-                sell_price,
-                img_path: imagePath
-            },
-            { where: { item_id: id } }
-        );
+        const [current] = await sequelize.query('SELECT image FROM items WHERE id = ? LIMIT 1', { replacements: [id] });
+        const imagePath = req.file ? req.file.path.replace(/\\/g, '/') : (current[0]?.image || null);
 
-        await Stock.update(
-            { quantity },
-            { where: { item_id: id } }
+        await sequelize.query(
+            'UPDATE items SET category_id = ?, name = ?, description = ?, brand = ?, buy_price = ?, sell_price = ?, stock = ?, image = ?, status = ? WHERE id = ?',
+            {
+                replacements: [category_id || 1, name, description || '', brand || '', buy_price, sell_price, stock || 0, imagePath, status, id]
+            }
         );
 
         return res.status(200).json({ success: true });
@@ -102,13 +91,11 @@ exports.updateItem = async (req, res, next) => {
     }
 };
 
-// Delete item
 exports.deleteItem = async (req, res) => {
     try {
         const { id } = req.params;
-
-        await Stock.destroy({ where: { item_id: id } });
-        await Item.destroy({ where: { item_id: id } });
+        await sequelize.query('DELETE FROM order_items WHERE item_id = ?', { replacements: [id] });
+        await sequelize.query('DELETE FROM items WHERE id = ?', { replacements: [id] });
 
         return res.status(200).json({
             success: true,

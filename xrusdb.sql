@@ -2,9 +2,9 @@
 -- DATABASE
 -- ============================================================
 
-DROP DATABASE IF EXISTS music_shop_db;
-CREATE DATABASE music_shop_db;
-USE music_shop_db;
+DROP DATABASE IF EXISTS xrus_db;
+CREATE DATABASE xrus_db;
+USE xrus_db;
 
 -- ============================================================
 -- USERS
@@ -212,7 +212,7 @@ VALUES (
     'Administrator',
     'admin',
     'admin@musicshop.com',
-    'admin123',
+    '$2b$10$j44U7xLBxrbfLONProiKnu6g9VXNNCj.L/jtG9zOxxstH8JsnXJDS',
     'admin',
     'active'
 );

@@ -1,0 +1,74 @@
+Update Log - 2026-07-04
+
+This document lists everything that was modified during the implementation and fixes for the Xrus web app.
+
+1. Authentication and User Account Features
+- Fixed user registration flow and improved username generation.
+- Added username uniqueness handling to avoid duplicate usernames.
+- Fixed login flow so inactive users are blocked from signing in.
+- Corrected the seeded admin password so admin login works with:
+  - Email: admin@musicshop.com
+  - Password: admin
+- Added admin support for creating users from the admin panel.
+- Added admin support for updating user information.
+- Added admin support for deleting users.
+- Added admin support for activating and deactivating users.
+- Added admin support for changing user roles.
+
+2. Admin User Management UI
+- Added a user management page with Add User, Edit User, Delete User, Toggle Status, and Update Role actions.
+- Added role selection using a dropdown in the user table.
+- Added a dedicated Update Role button for each user.
+- Added a modal form for creating and editing users.
+
+3. Backend User Routes and Controllers
+- Added/updated backend endpoints:
+  - POST /api/v1/users
+  - GET /api/v1/users
+  - PUT /api/v1/users/:id
+  - DELETE /api/v1/users/:id
+  - PUT /api/v1/users/:id/status
+  - PUT /api/v1/users/:id/role
+- Updated the user controller to support admin CRUD actions and role/status changes.
+- Added validation for user creation and updates.
+
+4. Item Management CRUD
+- Repaired the item CRUD page so it works correctly.
+- Updated the item form to use the correct item fields:
+  - name
+  - description
+  - brand
+  - buy_price
+  - sell_price
+  - stock
+  - category_id
+  - status
+  - image
+- Fixed item create, fetch, update, and delete operations.
+- Improved the item page search/filter behavior.
+
+5. Homepage Search and Product Browsing
+- Added a search box on the homepage.
+- Implemented live filtering for products by name.
+- Added autocomplete-style suggestions for product search.
+- Improved product rendering from the backend API.
+
+6. Frontend Files Modified
+- xrus-front/users.html
+- xrus-front/js/users.js
+- xrus-front/item.html
+- xrus-front/js/item.js
+- xrus-front/home.html
+- xrus-front/js/home.js
+- xrus-front/header.html
+
+7. Backend Files Modified
+- xrus-back/controllers/user.js
+- xrus-back/routes/user.js
+- xrus-back/controllers/item.js
+
+8. Verification Performed
+- Verified that the backend server runs successfully on port 4000.
+- Verified that the admin login endpoint works.
+- Verified that the item listing endpoint returns data from the database.
+- Verified that the protected admin user routes respond correctly.

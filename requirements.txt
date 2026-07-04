@@ -1,20 +1,18 @@
 *** Update June 8 2026
 Advance Web Application Project Requirements
 machine problems 20pts
-mp1 Laravel CRUD api 12pts
-    NodeJS CRUD api 20pts
-mp2 Laravel CRUD api 12pts
-    NodeJS CRUD api 20pts
+mp1 NodeJS CRUD api 20pts
+mp2 NodeJS CRUD api 20pts
 
 mp3 CRUD Jquery/datatables multiple file uploads for mp1 20pts
 mp4 CRUD Jquery/datatables frontend for mp2
 mp5 generate and send tokens for authentication. 15pts
     save token on users table. 5pts
-mp6 User registration, Login API via Jquery AJAX. admin can update role of user. admin can deactivate users. List users on datatable. Laravel 15pts. NodeJS 20pts
+mp6 User registration, Login API via Jquery AJAX. admin can update role of user. admin can deactivate users. List users on datatable. NodeJS 20pts
 mp7  use Sequelize ORM on CRUD functions 20pts
 
 term test Lab 40pts
-transactions CRUD api and jquery front end. the sample UI implementation will have lower points. laravel 20pts NodeJS 25pts
+transactions CRUD api and jquery front end. the sample UI implementation will have lower points.     NodeJS 25pts
 send an email when updating the transaction 5pts
 send an email when updating the transaction. attach the receipt with order details in pdf 10pts
 

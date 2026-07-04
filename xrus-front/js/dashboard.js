@@ -1,5 +1,21 @@
 $(document).ready(function () {
-    const url = 'http://192.168.68.107:4000/'
+    const url = 'http://localhost:4000/'
+    const role = sessionStorage.getItem('role') || 'customer';
+
+    $('#home').load('header.html', function () {
+        $('.admin-only').toggle(role === 'admin');
+    });
+
+    if (role !== 'admin') {
+        Swal.fire({
+            icon: 'warning',
+            text: 'Admin access required for this page.',
+            showConfirmButton: true
+        }).then(() => {
+            window.location.href = 'home.html';
+        });
+        return;
+    }
     const getToken = () => {
         const token = sessionStorage.getItem('token');
 
@@ -13,7 +29,7 @@ $(document).ready(function () {
             });
             return;
         }
-        return JSON.parse(token)
+        return token
     }
     $.ajax({
         method: "GET",

@@ -1,141 +1,151 @@
 $(document).ready(function () {
-    const url = 'http://192.168.68.107:4000'
+    const url = 'http://localhost:4000';
+    const role = sessionStorage.getItem('role') || 'customer';
 
-    const getToken = () => {
-        const token = sessionStorage.getItem('token');
-
-        if (!token) {
-            Swal.fire({
-                icon: 'warning',
-                text: 'You must be logged in to access this page.',
-                showConfirmButton: true
-            }).then(() => {
-                window.location.href = 'login.html';
-            });
-            return;
-        }
-        return JSON.parse(token)
-    }
-
-    $('#itable').DataTable({
-        ajax: {
-            url: `${url}/api/v1/items`,
-            dataSrc: 'rows',
-            headers: {
-                "Authorization": "Bearer " + getToken()
-            },
-        },
-        dom: 'Bfrtip',
-        buttons: [
-            'pdf',
-            'excel',
-            {
-                text: 'Add item',
-                className: 'btn btn-primary',
-                action: function (e, dt, node, config) {
-                    $("#iform").trigger("reset");
-                    $('#itemModal').modal('show');
-                    $('#itemUpdate').hide();
-                    $('#itemImage').remove()
-                }
-            }
-        ],
-        columns: [
-            { data: 'item_id' },
-            {
-                data: null,
-                render: function (data, type, row) {
-                    return `<img src="${url}/${data.img_path}" width="50" height="60">`;
-                }
-            },
-
-            { data: 'description' },
-            { data: 'cost_price' },
-            { data: 'sell_price' },
-            // { data: 'stock.quantity' },
-            { data: 'quantity' },
-            {
-                data: null,
-                render: function (data, type, row) {
-                    return "<a href='#' class = 'editBtn' id='editbtn' data-id=" + data.item_id + "><i class='fas fa-edit' aria-hidden='true' style='font-size:24px' ></i></a><a href='#'  class='deletebtn' data-id=" + data.item_id + "><i  class='fas fa-trash-alt' style='font-size:24px; color:red' ></a></i>";
-                }
-            }
-        ],
+    $('#home').load('header.html', function () {
+        $('.admin-only').toggle(role === 'admin');
     });
 
-    $("#itemSubmit").on('click', function (e) {
-        e.preventDefault();
-        var data = $('#iform')[0];
-        console.log(data);
-        // if (getToken()) {
-        let formData = new FormData(data);
-        console.log(formData);
-        for (var pair of formData.entries()) {
-            console.log(pair[0] + ', ' + pair[1]);
+    $('#itemUpdate').hide();
+
+    if (role !== 'admin') {
+        Swal.fire({ icon: 'warning', text: 'Admin access required for this page.', showConfirmButton: true })
+            .then(() => { window.location.href = 'home.html'; });
+        return;
+    }
+
+    const getToken = () => {
+        let token = sessionStorage.getItem('token');
+        if (!token) {
+            Swal.fire({ icon: 'warning', text: 'You must be logged in to access this page.', showConfirmButton: true })
+                .then(() => { window.location.href = 'login.html'; });
+            return null;
         }
-        const token = getToken()
+        token = token.replace(/^"|"$/g, '');
+        return token;
+    };
+
+    const loadItems = () => {
+        const token = getToken();
+        if (!token) return;
 
         $.ajax({
-            method: "POST",
+            method: 'GET',
+            url: `${url}/api/v1/items`,
+            dataType: 'json',
+            headers: { Authorization: `Bearer ${token}` },
+            success: function (data) {
+                const rows = Array.isArray(data.rows) ? data.rows : [];
+                const body = $('#ibody');
+                body.empty();
+
+                if (!rows.length) {
+                    body.html('<tr><td colspan="8" class="text-center">No items found</td></tr>');
+                    return;
+                }
+
+                body.html(rows.map(item => `
+                    <tr>
+                        <td>${item.id}</td>
+                        <td><img src="${item.image ? `${url}/${item.image}` : ''}" width="50" height="60"></td>
+                        <td>${item.name || ''}</td>
+                        <td>${item.description || ''}</td>
+                        <td>₱ ${Number(item.buy_price || 0).toFixed(2)}</td>
+                        <td>₱ ${Number(item.sell_price || 0).toFixed(2)}</td>
+                        <td>${item.stock ?? 0}</td>
+                        <td>
+                            <a href='#' class='editBtn' data-id='${item.id}'><i class='fas fa-edit' aria-hidden='true' style='font-size:24px'></i></a>
+                            <a href='#' class='deletebtn' data-id='${item.id}'><i class='fas fa-trash-alt' style='font-size:24px; color:red'></i></a>
+                        </td>
+                    </tr>
+                `).join(''));
+            },
+            error: function (error) {
+                console.log(error);
+                $('#ibody').html('<tr><td colspan="8" class="text-center">Unable to load items</td></tr>');
+            }
+        });
+    };
+
+    $('#itemSearch').on('input', function () {
+        const query = $(this).val().toLowerCase();
+        $('#ibody tr').each(function () {
+            const rowText = $(this).text().toLowerCase();
+            $(this).toggle(rowText.includes(query));
+        });
+    });
+
+    loadItems();
+
+    $('button[data-target="#itemModal"]').on('click', function () {
+        $('#iform')[0].reset();
+        $('#itemId').val('');
+        $('#itemSubmit').show();
+        $('#itemUpdate').hide();
+        $('#itemImagePreview').remove();
+    });
+
+    $('#itemModal').on('hidden.bs.modal', function () {
+        $('#iform')[0].reset();
+        $('#itemId').val('');
+        $('#itemSubmit').show();
+        $('#itemUpdate').hide();
+        $('#itemImagePreview').remove();
+    });
+
+    $('#itemSubmit').on('click', function (e) {
+        e.preventDefault();
+        const token = getToken();
+        if (!token) return;
+
+        const formData = new FormData($('#iform')[0]);
+        $.ajax({
+            method: 'POST',
             url: `${url}/api/v1/items`,
             data: formData,
             contentType: false,
             processData: false,
-            dataType: "json",
-            headers: {
-                "Authorization": "Bearer " + token
-            },
+            dataType: 'json',
+            headers: { Authorization: `Bearer ${token}` },
             success: function (data) {
-                console.log(data);
-                $("#itemModal").modal("hide");
-                var $itable = $('#itable').DataTable();
-                $itable.ajax.reload()
+                Swal.fire({ icon: 'success', text: data.message || 'Item saved' });
+                $('#itemModal').modal('hide');
+                $('#iform')[0].reset();
+                loadItems();
             },
             error: function (error) {
-                Swal.fire({
-                    icon: "error",
-                    text: error.responseText,
-                    showConfirmButton: false,
-                    // position: 'bottom-right',
-                    timer: 3000,
-                    timerProgressBar: true
-
-                });
+                Swal.fire({ icon: 'error', text: error.responseJSON?.error || 'Unable to save item' });
                 console.log(error);
             }
         });
-
-        // }
-
     });
 
     $('#itable tbody').on('click', 'a.editBtn', function (e) {
         e.preventDefault();
-        $('#itemImage').remove()
-        $('#itemId').remove()
-        $("#iform").trigger("reset");
-        var id = $(this).data('id');
-        console.log(id);
+        const id = $(this).data('id');
+        $('#itemId').val(id);
+        $('#itemSubmit').hide();
+        $('#itemUpdate').show();
         $('#itemModal').modal('show');
-        $('<input>').attr({ type: 'hidden', id: 'itemId', name: 'item_id', value: id }).appendTo('#iform');
-
-        $('#itemSubmit').hide()
-        $('#itemUpdate').show()
 
         $.ajax({
-            method: "GET",
+            method: 'GET',
             url: `${url}/api/v1/items/${id}`,
-            dataType: "json",
+            dataType: 'json',
+            headers: { Authorization: `Bearer ${getToken()}` },
             success: function (data) {
-                const { description, item_id, stock, cost_price, sell_price, quantity } = data.result[0]
-
-                console.log(data.result[0]);
-                $('#desc').val(description)
-                $('#sell').val(sell_price)
-                $('#cost').val(cost_price)
-                $('#qty').val(quantity)
-                $("#iform").append(`<img src="${url}/${data.img_path}" width='200px', height='200px' id="itemImage"   />`)
-
+                const item = data.result || {};
+                $('#itemName').val(item.name || '');
+                $('#itemDescription').val(item.description || '');
+                $('#itemBrand').val(item.brand || '');
+                $('#itemBuyPrice').val(item.buy_price || '');
+                $('#itemSellPrice').val(item.sell_price || '');
+                $('#itemStock').val(item.stock || 0);
+                $('#itemCategoryId').val(item.category_id || 1);
+                $('#itemImagePreview').remove();
+                if (item.image) {
+                    $('#iform').append(`<img id="itemImagePreview" src="${url}/${item.image}" width="120" class="mt-2" />`);
+                }
             },
             error: function (error) {
                 console.log(error);
@@ -143,85 +153,57 @@ $(document).ready(function () {
         });
     });
 
-    $("#itemUpdate").on('click', function (e) {
+    $('#itemUpdate').on('click', function (e) {
         e.preventDefault();
-        var id = $('#itemId').val();
-        console.log(id);
-        var table = $('#itable').DataTable();
+        const token = getToken();
+        if (!token) return;
+        const id = $('#itemId').val();
+        const formData = new FormData($('#iform')[0]);
 
-        var data = $('#iform')[0];
-        let formData = new FormData(data);
-        // formData.append("_method", "PUT")
         $.ajax({
-            // method: "POST",
-            method: "PUT",
+            method: 'PUT',
             url: `${url}/api/v1/items/${id}`,
             data: formData,
             contentType: false,
             processData: false,
-
-            dataType: "json",
-            success: function (data) {
-                console.log(data);
-                $('#itemModal').modal("hide");
-                table.ajax.reload()
-
+            dataType: 'json',
+            headers: { Authorization: `Bearer ${token}` },
+            success: function () {
+                $('#itemModal').modal('hide');
+                loadItems();
             },
             error: function (error) {
                 console.log(error);
+                Swal.fire({ icon: 'error', text: error.responseJSON?.error || 'Unable to update item' });
             }
         });
     });
 
     $('#itable tbody').on('click', 'a.deletebtn', function (e) {
         e.preventDefault();
-        var table = $('#itable').DataTable();
-        var id = $(this).data('id');
-        var $row = $(this).closest('tr');
-        console.log(id);
-        if (getToken()) {
-            bootbox.confirm({
-                message: "do you want to delete this item",
-                buttons: {
-                    confirm: {
-                        label: 'yes',
-                        className: 'btn-success'
+        const id = $(this).data('id');
+        const token = getToken();
+        if (!token) return;
+
+        bootbox.confirm({
+            message: 'Do you want to delete this item?',
+            buttons: { confirm: { label: 'Yes', className: 'btn-success' }, cancel: { label: 'No', className: 'btn-danger' } },
+            callback: function (result) {
+                if (!result) return;
+                $.ajax({
+                    method: 'DELETE',
+                    url: `${url}/api/v1/items/${id}`,
+                    dataType: 'json',
+                    headers: { Authorization: `Bearer ${token}` },
+                    success: function () {
+                        loadItems();
+                        bootbox.alert('Item deleted successfully');
                     },
-                    cancel: {
-                        label: 'no',
-                        className: 'btn-danger'
+                    error: function (error) {
+                        console.log(error);
                     }
-                },
-                callback: function (result) {
-                    console.log(result);
-                    if (result) {
-                        $.ajax({
-                            method: "DELETE",
-                            url: `${url}/api/v1/items/${id}`,
-                            dataType: "json",
-                            contentType: 'application/json; charset=utf-8',
-                            headers: {
-                                "Authorization": "Bearer " + getToken()
-                            },
-                            success: function (data) {
-                                console.log(data);
-                                $row.fadeOut(4000, function () {
-                                    table.row($row).remove().draw();
-                                });
-
-                                bootbox.alert(data.success);
-                            },
-                            error: function (error) {
-                                console.log(error);
-                            }
-                        });
-
-                    }
-
-                }
-            });
-
-        }
-
-    })
-})
+                });
+            }
+        });
+    });
+});

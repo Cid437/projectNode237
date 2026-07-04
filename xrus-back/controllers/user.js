@@ -1,42 +1,71 @@
-const db = require('../models');
-const User = db.User;
-const Customer = db.Customer;
+const sequelize = require('../config/database');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
+const buildUsername = (value) => {
+    const base = (value || 'user').toLowerCase().replace(/[^a-z0-9]/g, '');
+    return `${base || 'user'}${Math.floor(1000 + Math.random() * 9000)}`;
+};
+
+const ensureUniqueUsername = async (value) => {
+    let candidate = (value || 'user').toLowerCase().replace(/[^a-z0-9]/g, '') || 'user';
+    let suffix = 0;
+
+    while (true) {
+        const [rows] = await sequelize.query('SELECT id FROM users WHERE username = ? LIMIT 1', {
+            replacements: [candidate]
+        });
+
+        if (!rows.length) {
+            return candidate;
+        }
+
+        suffix += 1;
+        candidate = `${candidate}${suffix}`;
+    }
+};
+
 const registerUser = async (req, res) => {
     try {
-        const { name, password, email } = req.body;
+        const { name, first_name, last_name, username, email, password, role = 'customer' } = req.body;
 
-        // Validate required fields
-        if (!name || !password || !email) {
+        if (!email || !password || (!name && !first_name && !last_name && !username)) {
             return res.status(400).json({ error: 'Name, email, and password are required' });
         }
 
-        // Hash password
-        const hashedPassword = await bcrypt.hash(password, 10);
-
-        // Create user
-        const user = await User.create({
-            name,
-            email,
-            password: hashedPassword
+        const [existing] = await sequelize.query('SELECT id FROM users WHERE email = ? LIMIT 1', {
+            replacements: [email]
         });
+
+        if (existing.length) {
+            return res.status(409).json({ error: 'Email already exists' });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const firstName = first_name || (name ? name.split(' ')[0] : 'User');
+        const lastName = last_name || (name ? name.split(' ').slice(1).join(' ') : 'User');
+        const userName = username || buildUsername(name || email);
+        const safeUsername = await ensureUniqueUsername(userName);
+
+        const [result] = await sequelize.query(
+            'INSERT INTO users (first_name, last_name, username, email, password, role, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            {
+                replacements: [firstName, lastName, safeUsername, email, hashedPassword, role, 'active']
+            }
+        );
 
         return res.status(201).json({
             success: true,
             message: 'User registered successfully',
             user: {
-                id: user.id,
-                name: user.name,
-                email: user.email
+                id: result.insertId,
+                first_name: firstName,
+                last_name: lastName,
+                email
             }
         });
     } catch (error) {
         console.log(error);
-        if (error.name === 'SequelizeUniqueConstraintError') {
-            return res.status(409).json({ error: 'Email already exists' });
-        }
         return res.status(500).json({ error: 'Error registering user', details: error.message });
     }
 };
@@ -49,37 +78,38 @@ const loginUser = async (req, res) => {
             return res.status(400).json({ error: 'Email and password are required' });
         }
 
-        // Find active user (not deleted)
-        const user = await User.findOne({
-            where: { 
-                email,
-                deleted_at: null 
-            }
-        });
+        const [users] = await sequelize.query(
+            'SELECT id, first_name, last_name, email, password, role, status FROM users WHERE email = ? LIMIT 1',
+            { replacements: [email] }
+        );
 
-        if (!user) {
+        if (!users.length) {
             return res.status(401).json({ success: false, message: 'Invalid email or password' });
         }
 
-        // Compare passwords
+        const user = users[0];
+        if (user.status !== 'active') {
+            return res.status(401).json({ success: false, message: 'Account is inactive' });
+        }
+
         const match = await bcrypt.compare(password, user.password);
         if (!match) {
             return res.status(401).json({ success: false, message: 'Invalid email or password' });
         }
 
-        // Generate JWT token
-        const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET);
-
-        const userResponse = {
-            id: user.id,
-            name: user.name,
-            email: user.email
-        };
+        const token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET || 'xrus-secret');
+        await sequelize.query('UPDATE users SET token = ? WHERE id = ?', { replacements: [token, user.id] });
 
         return res.status(200).json({
             success: true,
             message: 'Welcome back',
-            user: userResponse,
+            user: {
+                id: user.id,
+                first_name: user.first_name,
+                last_name: user.last_name,
+                email: user.email,
+                role: user.role
+            },
             token
         });
     } catch (error) {
@@ -90,48 +120,28 @@ const loginUser = async (req, res) => {
 
 const updateUser = async (req, res) => {
     try {
-        const { fname, lname, addressline, zipcode, phone, userId } = req.body;
+        const userId = req.body.userId || req.body.user?.id || req.body.user_id;
+        const { fname, lname, addressline, phone } = req.body;
 
-        // Validate required field
         if (!userId) {
             return res.status(400).json({ error: 'User ID is required' });
         }
 
-        let imagePath = null;
-        if (req.file) {
-            imagePath = req.file.path.replace(/\\/g, "/");
+        const [users] = await sequelize.query('SELECT id FROM users WHERE id = ? LIMIT 1', { replacements: [userId] });
+        if (!users.length) {
+            return res.status(404).json({ error: 'User not found' });
         }
 
-        // Find or create customer record
-        const [customer, created] = await Customer.findOrCreate({
-            where: { user_id: userId },
-            defaults: {
-                fname,
-                lname,
-                addressline,
-                zipcode,
-                phone,
-                image_path: imagePath,
-                user_id: userId
+        await sequelize.query(
+            'UPDATE users SET first_name = ?, last_name = ?, address = ?, phone = ? WHERE id = ?',
+            {
+                replacements: [fname || null, lname || null, addressline || null, phone || null, userId]
             }
-        });
-
-        // Update if already exists
-        if (!created) {
-            await customer.update({
-                fname: fname || customer.fname,
-                lname: lname || customer.lname,
-                addressline: addressline || customer.addressline,
-                zipcode: zipcode || customer.zipcode,
-                phone: phone || customer.phone,
-                image_path: imagePath || customer.image_path
-            });
-        }
+        );
 
         return res.status(200).json({
             success: true,
-            message: 'Profile updated successfully',
-            customer
+            message: 'Profile updated successfully'
         });
     } catch (error) {
         console.log(error);
@@ -141,27 +151,27 @@ const updateUser = async (req, res) => {
 
 const deactivateUser = async (req, res) => {
     try {
-        const { email } = req.body;
+        const { email, id } = req.body;
 
-        if (!email) {
-            return res.status(400).json({ error: 'Email is required' });
+        if (!email && !id) {
+            return res.status(400).json({ error: 'Email or ID is required' });
         }
 
-        // Find and update user
-        const user = await User.findOne({ where: { email } });
+        const [users] = await sequelize.query('SELECT id FROM users WHERE id = ? OR email = ? LIMIT 1', {
+            replacements: [id, email]
+        });
 
-        if (!user) {
+        if (!users.length) {
             return res.status(404).json({ error: 'User not found' });
         }
 
-        const timestamp = new Date();
-        await user.update({ deleted_at: timestamp });
+        await sequelize.query('UPDATE users SET status = ?, token = NULL WHERE id = ?', {
+            replacements: ['inactive', users[0].id]
+        });
 
         return res.status(200).json({
             success: true,
-            message: 'User deactivated successfully',
-            email,
-            deleted_at: timestamp
+            message: 'User deactivated successfully'
         });
     } catch (error) {
         console.log(error);
@@ -169,7 +179,163 @@ const deactivateUser = async (req, res) => {
     }
 };
 
-module.exports = { registerUser, loginUser, updateUser, deactivateUser };
+const updateUserStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const status = req.body?.status || req.body?.state;
+
+        if (!['active', 'inactive'].includes(status)) {
+            return res.status(400).json({ error: 'Status must be active or inactive' });
+        }
+
+        const [users] = await sequelize.query('SELECT id FROM users WHERE id = ? LIMIT 1', {
+            replacements: [id]
+        });
+
+        if (!users.length) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        await sequelize.query('UPDATE users SET status = ?, token = NULL WHERE id = ?', {
+            replacements: [status, id]
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: status === 'active' ? 'User activated successfully' : 'User deactivated successfully'
+        });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({ error: 'Error updating user status', details: error.message });
+    }
+};
+
+const createUser = async (req, res) => {
+    try {
+        const { first_name, last_name, username, email, password, role = 'customer', status = 'active' } = req.body;
+
+        if (!email || !password) {
+            return res.status(400).json({ error: 'Email and password are required' });
+        }
+
+        const [existing] = await sequelize.query('SELECT id FROM users WHERE email = ? LIMIT 1', {
+            replacements: [email]
+        });
+
+        if (existing.length) {
+            return res.status(409).json({ error: 'Email already exists' });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const safeUsername = await ensureUniqueUsername(username || email.split('@')[0]);
+
+        const [result] = await sequelize.query(
+            'INSERT INTO users (first_name, last_name, username, email, password, role, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            {
+                replacements: [first_name || '', last_name || '', safeUsername, email, hashedPassword, role, status]
+            }
+        );
+
+        return res.status(201).json({
+            success: true,
+            message: 'User created successfully',
+            user: {
+                id: result.insertId,
+                first_name: first_name || '',
+                last_name: last_name || '',
+                email,
+                role,
+                status
+            }
+        });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({ error: 'Error creating user', details: error.message });
+    }
+};
+
+const getAllUsers = async (req, res) => {
+    try {
+        const [rows] = await sequelize.query(
+            'SELECT id, first_name, last_name, username, email, role, status, created_at FROM users ORDER BY id DESC'
+        );
+
+        return res.status(200).json({ rows });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({ error: 'Error fetching users', details: error.message });
+    }
+};
+
+const updateUserByAdmin = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { first_name, last_name, username, email, role, status } = req.body;
+
+        const [users] = await sequelize.query('SELECT id, username, email FROM users WHERE id = ? LIMIT 1', {
+            replacements: [id]
+        });
+
+        if (!users.length) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        const currentUser = users[0];
+        const nextUsername = username || currentUser.username;
+        const nextEmail = email || currentUser.email;
+        const safeUsername = nextUsername === currentUser.username ? nextUsername : await ensureUniqueUsername(nextUsername);
+
+        await sequelize.query(
+            'UPDATE users SET first_name = ?, last_name = ?, username = ?, email = ?, role = ?, status = ? WHERE id = ?',
+            {
+                replacements: [first_name || '', last_name || '', safeUsername, nextEmail, role || 'customer', status || 'active', id]
+            }
+        );
+
+        return res.status(200).json({ success: true, message: 'User updated successfully' });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({ error: 'Error updating user', details: error.message });
+    }
+};
+
+const deleteUserByAdmin = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const [users] = await sequelize.query('SELECT id FROM users WHERE id = ? LIMIT 1', { replacements: [id] });
+
+        if (!users.length) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        await sequelize.query('DELETE FROM order_items WHERE order_id IN (SELECT id FROM orders WHERE user_id = ?)', { replacements: [id] });
+        await sequelize.query('DELETE FROM orders WHERE user_id = ?', { replacements: [id] });
+        await sequelize.query('DELETE FROM users WHERE id = ?', { replacements: [id] });
+        return res.status(200).json({ success: true, message: 'User deleted successfully' });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({ error: 'Error deleting user', details: error.message });
+    }
+};
+
+const updateUserRole = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { role } = req.body;
+
+        if (!role) {
+            return res.status(400).json({ error: 'Role is required' });
+        }
+
+        await sequelize.query('UPDATE users SET role = ? WHERE id = ?', { replacements: [role, id] });
+        return res.status(200).json({ success: true, message: 'User role updated' });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({ error: 'Error updating user role', details: error.message });
+    }
+};
+
+module.exports = { registerUser, loginUser, updateUser, deactivateUser, updateUserStatus, createUser, getAllUsers, updateUserByAdmin, deleteUserByAdmin, updateUserRole };
 // const connection = require('../config/_database');
 // const bcrypt = require('bcrypt')
 // const jwt = require('jsonwebtoken')

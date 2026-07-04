@@ -29,13 +29,16 @@ $(document).ready(function () {
                 </thead>
                 <tbody>`;
             cart.forEach((item, idx) => {
-                let subtotal = item.price * item.quantity;
+                let price = Number(item.price || 0);
+                let subtotal = price * item.quantity;
                 total += subtotal;
                 html += `<tr>
                     <td><img src="${item.image}" width="60"></td>
                     <td>${item.description}</td>
-                    <td>₱ ${item.price.toFixed(2)}</td>
-                    <td>${item.quantity}</td>
+                    <td>₱ ${price.toFixed(2)}</td>
+                    <td>
+                        <input type="number" class="form-control form-control-sm cart-qty" data-idx="${idx}" min="1" max="${item.stock || 999}" value="${item.quantity}">
+                    </td>
                     <td>₱ ${(subtotal).toFixed(2)}</td>
                     <td><button class="btn btn-danger btn-sm remove-item" data-idx="${idx}">&times;</button></td>
                 </tr>`;
@@ -54,8 +57,7 @@ $(document).ready(function () {
     // }
 
     const getToken = () => {
-        const token = sessionStorage.getItem('token');
-        console.log(token)
+        let token = sessionStorage.getItem('token');
         if (!token) {
             Swal.fire({
                 icon: 'warning',
@@ -66,7 +68,8 @@ $(document).ready(function () {
             });
             return;
         }
-        return JSON.parse(token)
+        token = token.replace(/^"|"$/g, '');
+        return token
     }
 
     $('#cartTable').on('click', '.remove-item', function () {
@@ -77,46 +80,72 @@ $(document).ready(function () {
         renderCart();
     });
 
-    $('#header').load("header.html");
+    $('#cartTable').on('change', '.cart-qty', function () {
+        let idx = $(this).data('idx');
+        let quantity = parseInt($(this).val(), 10);
+        let max = parseInt($(this).attr('max'), 10);
+        let cart = getCart();
+
+        if (!quantity || quantity < 1) {
+            quantity = 1;
+        }
+
+        if (max && quantity > max) {
+            quantity = max;
+        }
+
+        cart[idx].quantity = quantity;
+        saveCart(cart);
+        renderCart();
+    });
+
+    $('#home').load("header.html");
 
     $('#checkoutBtn').on('click', function () {
 
-        itemCount = 0;
-        priceTotal = 0;
         let cart = getCart()
-        // let userId = getUserId()
+
+        if (!cart.length) {
+            Swal.fire({
+                icon: 'warning',
+                text: 'Your cart is empty'
+            });
+            return;
+        }
 
         console.log(JSON.stringify(cart));
 
-        const payload = JSON.stringify(cart);
-        // console.log(getToken())
-        // if (getToken()) {
-        //     $.ajax({
-        //         type: "POST",
-        //         url: `${url}api/v1/items/checkout`,
-        //         data: payload,
-        //         dataType: "json",
-        //         processData: false,
-        //         contentType: 'application/json; charset=utf-8',
-        //         headers: {
-        //             "Authorization": "Bearer " + getToken()
-        //         },
-        //         success: function (data) {
-        //             console.log(data);
-        //             // alert(data.status);
-        //             Swal.fire({
-        //                 icon: "success",
-        //                 text: data.status,
-        //             });
-        //             localStorage.removeItem('cart')
-        //             renderCart();
-        //         },
-        //         error: function (error) {
-        //             console.log(error);
-        //         }
-        //     });
-
-        // }
+        const payload = JSON.stringify({ cart, payment_method: 'Cash' });
+        const token = getToken();
+        if (token) {
+            $.ajax({
+                type: "POST",
+                url: `${url}api/v1/create-order`,
+                data: payload,
+                dataType: "json",
+                processData: false,
+                contentType: 'application/json; charset=utf-8',
+                headers: {
+                    "Authorization": "Bearer " + token
+                },
+                success: function (data) {
+                    console.log(data);
+                    Swal.fire({
+                        icon: "success",
+                        text: data.message || 'Order created successfully',
+                    });
+                    localStorage.removeItem('cart');
+                    renderCart();
+                },
+                error: function (error) {
+                    console.log(error);
+                    Swal.fire({
+                        icon: 'error',
+                        text: error.responseJSON?.error || 'Order failed'
+                    });
+                }
+            });
+        }
 
 
     });
