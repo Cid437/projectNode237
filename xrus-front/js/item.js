@@ -102,12 +102,21 @@ $(document).ready(function () {
         $('#itemImagePreviews').empty();
     });
 
-    $('#itemSubmit').on('click', function (e) {
-        e.preventDefault();
-        const token = getToken();
-        if (!token) return;
+  $('#itemSubmit').on('click', function (e) {
+    e.preventDefault();
+    const token = getToken();
+    if (!token) return;
 
-        const formData = new FormData($('#iform')[0]);
+    const name = $('#itemName').val().trim();
+    const buyPrice = $('#itemBuyPrice').val();
+    const sellPrice = $('#itemSellPrice').val();
+
+    if (!name || !buyPrice || !sellPrice) {
+        Swal.fire({ icon: 'warning', text: 'Name, Buy Price, and Sell Price are required' });
+        return;
+    }
+
+    const formData = new FormData($('#iform')[0]);
         $.ajax({
             method: 'POST',
             url: `${url}/api/v1/items`,

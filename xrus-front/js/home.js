@@ -1,47 +1,87 @@
 $(document).ready(function () {
     const url = 'http://localhost:4000/'
+    const PAGE_SIZE = 8;
     var itemCount = 0;
     var allItems = [];
+    var infiniteLoadedCount = 0;
+    var isSearchMode = false;
 
-    const getCart = () => {
-        let cart = localStorage.getItem('cart');
-        return cart ? JSON.parse(cart) : [];
+    // NOTE: use xrusHelpers.getCart()/saveCart() — scoped per logged-in
+    // user (or guest) instead of one shared localStorage('cart') key.
+    const getCart = () => xrusHelpers.getCart();
+    const saveCart = (cart) => xrusHelpers.saveCart(cart);
+
+    const buildCard = (value) => `<div class="col-md-3 mb-4">
+        <div class="card h-100">
+        <img src="${url}${value.image}" class="card-img-top" alt="${value.name}">
+        <div class="card-body">
+        <h5 class="card-title">${value.name}</h5>
+        <p class="card-text">₱ ${value.sell_price}</p>
+        <p class="card-text"><small class="text-muted">Stock: ${value.stock ?? 0}</small></p>
+        <a href="#!" class="btn btn-primary show-details" role="button" data-id="${value.id}" data-name="${value.name}" data-description="${value.description || ''}" data-price="${value.sell_price}" data-image="${value.image}" data-stock="${value.stock ?? 0}">Details</a>
+        </div>
+        </div>
+        </div>`;
+
+    const appendProducts = (items) => {
+        items.forEach(value => $('#productsGrid').append(buildCard(value)));
     };
 
-    const saveCart = cart => {
-        localStorage.setItem('cart', JSON.stringify(cart));
-    };
-
-    const renderProducts = (items) => {
-        const grid = $('#productsGrid');
-        grid.empty();
-
-        if (!items.length) {
-            grid.html('<div class="alert alert-secondary">No products found.</div>');
+    // Default browsing mode: infinite scroll
+    const renderInfiniteBatch = (reset) => {
+        if (reset) {
+            $('#productsGrid').empty();
+            infiniteLoadedCount = 0;
+        }
+        if (!allItems.length) {
+            $('#productsGrid').html('<div class="alert alert-secondary">No products found.</div>');
+            $('#homeLoading').hide();
             return;
         }
-
-        let row;
-        items.forEach((value, key) => {
-            if (key % 4 === 0) {
-                row = $('<div class="row"></div>');
-                grid.append(row);
-            }
-
-            const item = `<div class="col-md-3 mb-4">
-                <div class="card h-100">
-                <img src="${url}${value.image}" class="card-img-top" alt="${value.name}" >
-                <div class="card-body">
-                <h5 class="card-title">${value.name}</h5>
-                <p class="card-text">₱ ${value.sell_price}</p>
-                <p class="card-text"><small class="text-muted">Stock: ${value.stock ?? 0}</small></p>
-                <a href="#!" class="btn btn-primary show-details" role="button" data-id="${value.id}" data-name="${value.name}" data-description="${value.description || ''}" data-price="${value.sell_price}" data-image="${value.image}" data-stock="${value.stock ?? 0}">Details</a>
-                </div>
-                </div>
-                </div>`;
-            row.append(item);
-        });
+        const nextItems = allItems.slice(infiniteLoadedCount, infiniteLoadedCount + PAGE_SIZE);
+        appendProducts(nextItems);
+        infiniteLoadedCount += nextItems.length;
+        $('#homeLoading').toggle(infiniteLoadedCount < allItems.length);
     };
+
+    // Search mode: numbered pagination
+    const renderPaginationControls = (totalItems, page) => {
+        const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+        const nav = $('#homePagination');
+        nav.empty();
+        if (totalPages <= 1) return;
+        for (let p = 1; p <= totalPages; p++) {
+            nav.append(`<button type="button" class="btn btn-sm ${p === page ? 'btn-primary' : 'btn-outline-primary'} mr-1 page-btn" data-page="${p}">${p}</button>`);
+        }
+    };
+
+    const renderSearchPage = (filteredItems, page) => {
+        $('#productsGrid').empty();
+        if (!filteredItems.length) {
+            $('#productsGrid').html('<div class="alert alert-secondary">No products found.</div>');
+            $('#homePagination').empty();
+            return;
+        }
+        const start = (page - 1) * PAGE_SIZE;
+        appendProducts(filteredItems.slice(start, start + PAGE_SIZE));
+        renderPaginationControls(filteredItems.length, page);
+    };
+
+    $(window).on('scroll', function () {
+        if (isSearchMode) return;
+        if ($(window).scrollTop() + $(window).height() >= $(document).height() - 150) {
+            if (infiniteLoadedCount < allItems.length) {
+                renderInfiniteBatch(false);
+            }
+        }
+    });
+
+    $(document).on('click', '.page-btn', function () {
+        const page = parseInt($(this).data('page'), 10);
+        const query = $('#homeSearch').val().toLowerCase().trim();
+        const filtered = allItems.filter(item => item.name.toLowerCase().includes(query));
+        renderSearchPage(filtered, page);
+    });
 
     $.ajax({
         method: 'GET',
@@ -49,16 +89,21 @@ $(document).ready(function () {
         dataType: 'json',
         success: function (data) {
             allItems = Array.isArray(data.rows) ? data.rows : [];
-            renderProducts(allItems);
+            renderInfiniteBatch(true);
 
             $('#homeSearch').on('input', function () {
                 const query = $(this).val().toLowerCase().trim();
                 if (!query) {
-                    renderProducts(allItems);
+                    isSearchMode = false;
+                    $('#homePagination').empty();
+                    $('#homeLoading').toggle(infiniteLoadedCount < allItems.length);
+                    renderInfiniteBatch(true);
                     return;
                 }
+                isSearchMode = true;
+                $('#homeLoading').hide();
                 const filtered = allItems.filter(item => item.name.toLowerCase().includes(query));
-                renderProducts(filtered);
+                renderSearchPage(filtered, 1);
             });
 
             if ($('#productDetailsModal').length === 0) {

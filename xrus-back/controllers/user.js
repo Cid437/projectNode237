@@ -335,8 +335,26 @@ const updateUserRole = async (req, res) => {
     }
 };
 
-module.exports = { registerUser, loginUser, updateUser, deactivateUser, updateUserStatus, createUser, getAllUsers, updateUserByAdmin, deleteUserByAdmin, updateUserRole };
-// const connection = require('../config/_database');
+const getProfile = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const [users] = await sequelize.query(
+            'SELECT id, first_name, last_name, username, email, phone, address, role FROM users WHERE id = ? LIMIT 1',
+            { replacements: [userId] }
+        );
+
+        if (!users.length) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        return res.status(200).json({ success: true, user: users[0] });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({ error: 'Error fetching profile', details: error.message });
+    }
+};
+
+module.exports = { registerUser, loginUser, updateUser, deactivateUser, updateUserStatus, createUser, getAllUsers, updateUserByAdmin, deleteUserByAdmin, updateUserRole, getProfile };// const connection = require('../config/_database');
 // const bcrypt = require('bcrypt')
 // const jwt = require('jsonwebtoken')
 

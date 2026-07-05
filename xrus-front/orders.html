@@ -1,0 +1,85 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Orders</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.21/css/dataTables.bootstrap4.min.css" />
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.6/css/all.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.16.1/sweetalert2.css" />
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.12.9/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/js/bootstrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootbox.js/5.5.2/bootbox.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.16.1/sweetalert2.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.21/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.21/js/dataTables.bootstrap4.min.js"></script>
+    <script src="js/helpers.js"></script>
+    <script src="js/orders.js"></script>
+  </head>
+  <body>
+    <div id="home"></div>
+    <div id="orders" class="container">
+      <h2 class="mb-3">Order Management</h2>
+      <div class="table-responsive mt-3">
+        <table id="otable" class="table table-striped table-hover">
+          <thead>
+            <tr>
+              <th>Order #</th>
+              <th>Customer</th>
+              <th>Total</th>
+              <th>Payment</th>
+              <th>Status</th>
+              <th>Date</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="obody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="modal fade" id="orderModal" role="dialog" style="display: none">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h4 class="modal-title">Order Details</h4>
+            <button type="button" class="close" data-dismiss="modal">&times;</button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" id="orderId" />
+            <p><strong>Order #:</strong> <span id="orderNumber"></span></p>
+            <p><strong>Customer:</strong> <span id="orderCustomer"></span></p>
+            <p><strong>Shipping Address:</strong> <span id="orderAddress"></span></p>
+            <table class="table table-sm">
+              <thead><tr><th>Item</th><th>Qty</th><th>Price</th><th>Subtotal</th></tr></thead>
+              <tbody id="orderItemsBody"></tbody>
+            </table>
+            <div class="form-group">
+              <label>Order Status</label>
+              <select class="form-control" id="orderStatus">
+                <option value="Pending">Pending</option>
+                <option value="Processing">Processing</option>
+                <option value="Shipped">Shipped</option>
+                <option value="Completed">Completed</option>
+                <option value="Cancelled">Cancelled</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Payment Status</label>
+              <select class="form-control" id="paymentStatus">
+                <option value="Pending">Pending</option>
+                <option value="Paid">Paid</option>
+                <option value="Refunded">Refunded</option>
+              </select>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            <button id="orderUpdateBtn" type="button" class="btn btn-primary">Update</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

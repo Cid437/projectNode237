@@ -54,30 +54,42 @@ $(document).ready(function () {
         });
     });
 
-    $('#profile').load('header.html', function () {
-        const token = sessionStorage.getItem('token');
-        const userId = sessionStorage.getItem('userId');
+  $('#profile').load('header.html', function () {
+    const token = sessionStorage.getItem('token');
+    const userId = sessionStorage.getItem('userId');
 
-        if (!token || !userId) {
-            window.location.href = 'login.html';
-            return;
-        }
+    if (!token || !userId) {
+        window.location.href = 'login.html';
+        return;
+    }
 
-        const role = sessionStorage.getItem('role') || 'customer';
-        $('.admin-only').toggle(role === 'admin');
+    const role = sessionStorage.getItem('role') || 'customer';
+    $('.admin-only').toggle(role === 'admin');
 
-        const $loginLink = $('a.nav-link[href="login.html"]');
-        $loginLink.text('Logout').attr({ href: '#!', id: 'logout-link' }).on('click', function (e) {
-            e.preventDefault();
-            Swal.fire({
-                text: 'logout',
-                showConfirmButton: false,
-                position: 'bottom-right',
-                timer: 1000,
-                timerProgressBar: true
-            });
-            sessionStorage.clear();
-            window.location.href = 'login.html';
-        });
+    const $loginLink = $('a.nav-link[href="login.html"]');
+    $loginLink.text('Logout').attr({ href: '#!', id: 'logout-link' }).on('click', function (e) {
+        e.preventDefault();
+        Swal.fire({ text: 'logout', showConfirmButton: false, position: 'bottom-right', timer: 1000, timerProgressBar: true });
+        sessionStorage.clear();
+        window.location.href = 'login.html';
     });
+
+    // NEW: load existing profile data
+    $.ajax({
+        method: 'GET',
+        url: `${url}api/v1/profile`,
+        dataType: 'json',
+        headers: { Authorization: 'Bearer ' + token.replace(/^"|"$/g, '') },
+        success: function (data) {
+            const user = data.user || {};
+            $('#firstName').val(user.first_name || '');
+            $('#lastName').val(user.last_name || '');
+            $('#address').val(user.address || '');
+            $('#phone').val(user.phone || '');
+        },
+        error: function (error) {
+            console.log(error);
+        }
+    });
+  });
 });

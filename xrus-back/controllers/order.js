@@ -1,5 +1,6 @@
 const sequelize = require('../config/database');
 const sendEmail = require('../utils/sendEmail');
+const { QueryTypes } = require('sequelize');
 
 const buildReceiptPdf = (orderNumber, order, items) => {
     const lines = [
@@ -32,6 +33,41 @@ exports.createOrder = async (req, res) => {
             return res.status(400).json({ error: 'Cart is empty' });
         }
 
+        // Validate every cart item up front, outside the transaction, so we
+        // can tell the frontend exactly which item(s) are the problem
+        // instead of failing the whole checkout with no way to recover.
+        const unavailableItems = [];
+        const insufficientItems = [];
+        const itemsSnapshot = {};
+
+        for (const cartItem of cart) {
+            const [itemRows] = await sequelize.query(
+                'SELECT id, sell_price, stock FROM items WHERE id = ? LIMIT 1',
+                { replacements: [cartItem.item_id] }
+            );
+
+            if (!itemRows.length) {
+                unavailableItems.push(cartItem.item_id);
+                continue;
+            }
+
+            const quantity = parseInt(cartItem.quantity || 1, 10);
+            if (itemRows[0].stock < quantity) {
+                insufficientItems.push({ item_id: cartItem.item_id, available: itemRows[0].stock });
+                continue;
+            }
+
+            itemsSnapshot[cartItem.item_id] = itemRows[0];
+        }
+
+        if (unavailableItems.length || insufficientItems.length) {
+            return res.status(409).json({
+                error: 'Some items in your cart are no longer available',
+                unavailable_items: unavailableItems,
+                insufficient_items: insufficientItems
+            });
+        }
+
         const transaction = await sequelize.transaction();
 
         try {
@@ -45,34 +81,24 @@ exports.createOrder = async (req, res) => {
                 return res.status(404).json({ error: 'User not found' });
             }
 
-            const subtotal = cart.reduce((sum, item) => sum + (parseFloat(item.price || 0) * parseInt(item.quantity || 0)), 0);
+            const subtotal = cart.reduce((sum, item) => sum + (parseFloat(item.price || 0) * parseInt(item.quantity || 0, 10)), 0);
             const totalAmount = subtotal + parseFloat(shipping_fee || 0) - parseFloat(discount || 0);
             const orderNumber = `ORD-${Date.now()}`;
 
-            const [orderResult] = await sequelize.query(
+            const [orderId] = await sequelize.query(
                 'INSERT INTO orders (user_id, order_number, subtotal, shipping_fee, discount, total_amount, payment_method, payment_status, order_status, shipping_address) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                 {
                     replacements: [userId, orderNumber, subtotal.toFixed(2), shipping_fee, discount, totalAmount.toFixed(2), payment_method, 'Pending', 'Pending', shipping_address],
-                    transaction
+                    transaction,
+                    type: QueryTypes.INSERT
                 }
             );
-
-            const orderId = orderResult.insertId;
+            
             const receiptItems = [];
 
             for (const item of cart) {
-                const [itemRows] = await sequelize.query('SELECT id, sell_price, stock FROM items WHERE id = ? LIMIT 1', {
-                    replacements: [item.item_id],
-                    transaction
-                });
-
-                if (!itemRows.length) {
-                    await transaction.rollback();
-                    return res.status(404).json({ error: `Item ${item.item_id} not found` });
-                }
-
-                const unitPrice = parseFloat(item.price || itemRows[0].sell_price || 0);
-                const quantity = parseInt(item.quantity || 1);
+                const quantity = parseInt(item.quantity || 1, 10);
+                const unitPrice = parseFloat(item.price || itemsSnapshot[item.item_id].sell_price || 0);
                 const lineSubtotal = (unitPrice * quantity).toFixed(2);
 
                 await sequelize.query(

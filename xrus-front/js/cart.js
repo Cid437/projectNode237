@@ -8,13 +8,15 @@ $(document).ready(function () {
         return `${url}/images/${image}`;
     }
 
+    // NOTE: use xrusHelpers.getCart()/saveCart() instead of local
+    // localStorage('cart') copies — these are scoped per logged-in user
+    // so different accounts (and guests) no longer share the same cart.
     function getCart() {
-        let cart = localStorage.getItem('cart');
-        return cart ? JSON.parse(cart) : [];
+        return xrusHelpers.getCart();
     }
 
     function saveCart(cart) {
-        localStorage.setItem('cart', JSON.stringify(cart));
+        xrusHelpers.saveCart(cart);
     }
 
     function renderCart() {
@@ -57,12 +59,6 @@ $(document).ready(function () {
 
         $('#cartTable').html(html);
     }
-
-    // function getUserId() {
-    //     let userId = sessionStorage.getItem('userId');
-
-    //     return userId ?? '';
-    // }
 
     const getToken = () => {
         let token = sessionStorage.getItem('token');
@@ -143,14 +139,47 @@ $(document).ready(function () {
                         icon: "success",
                         text: data.message || 'Order created successfully',
                     });
-                    localStorage.removeItem('cart');
+                    saveCart([]);
                     renderCart();
                 },
                 error: function (error) {
                     console.log(error);
+                    const response = error.responseJSON || {};
+
+                    // Server tells us exactly which items are stale/out of
+                    // stock. Fix the cart instead of leaving the same bad
+                    // item stuck in it forever (which was causing checkout
+                    // to fail on every retry).
+                    if (response.unavailable_items || response.insufficient_items) {
+                        let currentCart = getCart();
+                        const unavailableIds = (response.unavailable_items || []).map(id => String(id));
+                        const insufficientMap = {};
+                        (response.insufficient_items || []).forEach(entry => {
+                            insufficientMap[String(entry.item_id)] = entry.available;
+                        });
+
+                        currentCart = currentCart.filter(item => !unavailableIds.includes(String(item.item_id)));
+                        currentCart.forEach(item => {
+                            const key = String(item.item_id);
+                            if (insufficientMap.hasOwnProperty(key)) {
+                                item.stock = insufficientMap[key];
+                                item.quantity = Math.min(item.quantity, Math.max(insufficientMap[key], 1));
+                            }
+                        });
+
+                        saveCart(currentCart);
+                        renderCart();
+
+                        Swal.fire({
+                            icon: 'warning',
+                            text: response.error || 'Some items in your cart are no longer available and have been updated. Please review your cart and try again.'
+                        });
+                        return;
+                    }
+
                     Swal.fire({
                         icon: 'error',
-                        text: error.responseJSON?.error || 'Order failed'
+                        text: response.error || 'Order failed'
                     });
                 }
             });

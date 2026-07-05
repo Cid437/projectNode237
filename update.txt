@@ -101,3 +101,10 @@ This document lists everything that was modified during the implementation and f
 - Frontend switched to DataTables ($('#itable').DataTable) for built-in search, sort, pagination
 - Added multi-image upload + preview in UI and removed manual search box
 - CRUD actions now refresh table via ajax.reload() without full reload
+
+12. Profile Load + Cart Order bug fix + order front end
+- Added orders front end for admin
+- Fixed profile bug where user is logged in but user details are not loaded on profile
+- fix issue where added items are all present on all carts regardless of user
+- fix issue where user cannot checkout their order
+- item stock now decreases after succesful user checkout

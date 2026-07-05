@@ -14,12 +14,19 @@
         getRole: function () {
             return (sessionStorage.getItem('role') || 'customer').toLowerCase();
         },
+        getCartKey: function () {
+            // Cart must be scoped per logged-in user (or 'guest' when not
+            // logged in). Without this, localStorage is shared by the whole
+            // browser and every user/guest ends up sharing one cart.
+            const userId = sessionStorage.getItem('userId');
+            return userId ? `cart_${userId}` : 'cart_guest';
+        },
         getCart: function () {
-            const cart = localStorage.getItem('cart');
+            const cart = localStorage.getItem(this.getCartKey());
             return cart ? JSON.parse(cart) : [];
         },
         saveCart: function (cart) {
-            localStorage.setItem('cart', JSON.stringify(cart));
+            localStorage.setItem(this.getCartKey(), JSON.stringify(cart));
         },
         updateCartBadge: function () {
             const count = this.getCart().reduce(function (sum, item) {
