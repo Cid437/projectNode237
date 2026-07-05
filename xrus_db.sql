@@ -252,3 +252,24 @@ COMMIT;
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+-- MP3: support multiple images per item without breaking existing single-image column.
+-- items.image is KEPT as-is and continues to store the first/primary image
+-- (so every existing query, including getAllItems and the DataTable, keeps working unchanged).
+-- item_images stores every uploaded file for an item (one-to-many).
+
+CREATE TABLE IF NOT EXISTS item_images (
+    id INT(11) NOT NULL AUTO_INCREMENT,
+    item_id INT(11) NOT NULL,
+    image_path VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (id),
+    KEY idx_item_images_item_id (item_id),
+
+    CONSTRAINT fk_item_images_item
+        FOREIGN KEY (item_id)
+        REFERENCES items(id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

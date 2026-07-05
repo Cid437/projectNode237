@@ -1,6 +1,4 @@
 /node_modules/
 # production
 # misc
-/config/.env
-/.env
 /images

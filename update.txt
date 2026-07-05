@@ -91,3 +91,13 @@ This document lists everything that was modified during the implementation and f
   - xrus-front/js/helpers.js
 - Kept the new scripts consistent with the existing jQuery and Swal patterns already used in the project.
 - Followed the current frontend naming and coding style without introducing extra files.
+
+11. Multiple Image Support + DataTables Integration Update
+- Added item_images table (item_id, image_path, FK cascade) while keeping items.image as primary image (no breaking changes to existing queries)
+- Updated upload logic: upload.single → upload.array('images', 10) for multi-image support
+- Controllers updated to store first image in items.image and all uploads in item_images (backward-compatible)
+- getSingleItem now returns full images[] array
+- deleteItem now also removes related item_images records
+- Frontend switched to DataTables ($('#itable').DataTable) for built-in search, sort, pagination
+- Added multi-image upload + preview in UI and removed manual search box
+- CRUD actions now refresh table via ajax.reload() without full reload

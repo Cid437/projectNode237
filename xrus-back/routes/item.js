@@ -8,8 +8,8 @@ const { isAdminUser } = require('../middlewares/admin');
 
 router.get('/items', getAllItems);
 router.get('/items/:id', getSingleItem);
-router.post('/items', isAuthenticatedUser, isAdminUser, upload.single('image'), createItem);
-router.put('/items/:id', isAuthenticatedUser, isAdminUser, upload.single('image'), updateItem);
+router.post('/items', isAuthenticatedUser, isAdminUser, upload.array('images', 10), createItem);
+router.put('/items/:id', isAuthenticatedUser, isAdminUser, upload.array('images', 10), updateItem);
 router.delete('/items/:id', isAuthenticatedUser, isAdminUser, deleteItem);
 
 module.exports = router;

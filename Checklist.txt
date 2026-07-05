@@ -1,3 +1,11 @@
+# mp1
+1. Get all items
+- localhost::4000/api/v1/items (pass ✅)
+2. get item by id
+- localhost::4000/api/v1/items/1 (pass ✅)
+3. 
+
+
 # Admin
 - Item Crud ✅
 - User Crud ✅
@@ -10,4 +18,4 @@
 # Concerns
 - Empty profile details after logging in
 - User can add to cart but cannot checkout/create order
-- Front end to be fixed
+- Front end to be to be improved

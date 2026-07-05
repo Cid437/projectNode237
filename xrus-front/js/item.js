@@ -32,64 +32,66 @@ $(document).ready(function () {
         return token;
     };
 
-    const loadItems = () => {
-        const token = getToken();
-        if (!token) return;
-
-        $.ajax({
-            method: 'GET',
+    // DataTables now handles AJAX loading, pagination, sorting and searching
+    // (this replaces the old manual loadItems()/#itemSearch implementation).
+    const itemsTable = $('#itable').DataTable({
+        ajax: {
             url: `${url}/api/v1/items`,
-            dataType: 'json',
-            headers: { Authorization: `Bearer ${token}` },
-            success: function (data) {
-                const rows = Array.isArray(data.rows) ? data.rows : [];
-                const body = $('#ibody');
-                body.empty();
-
-                if (!rows.length) {
-                    body.html('<tr><td colspan="8" class="text-center">No items found</td></tr>');
-                    return;
-                }
-
-                body.html(rows.map(item => `
-                    <tr>
-                        <td>${item.id}</td>
-                        <td><img src="${buildImageUrl(item.image)}" width="50" height="60"></td>
-                        <td>${item.name || ''}</td>
-                        <td>${item.description || ''}</td>
-                        <td>₱ ${Number(item.buy_price || 0).toFixed(2)}</td>
-                        <td>₱ ${Number(item.sell_price || 0).toFixed(2)}</td>
-                        <td>${item.stock ?? 0}</td>
-                        <td>
-                            <a href='#' class='editBtn' data-id='${item.id}'><i class='fas fa-edit' aria-hidden='true' style='font-size:24px'></i></a>
-                            <a href='#' class='deletebtn' data-id='${item.id}'><i class='fas fa-trash-alt' style='font-size:24px; color:red'></i></a>
-                        </td>
-                    </tr>
-                `).join(''));
+            headers: { Authorization: `Bearer ${getToken()}` },
+            dataSrc: function (data) {
+                return Array.isArray(data.rows) ? data.rows : [];
             },
             error: function (error) {
                 console.log(error);
-                $('#ibody').html('<tr><td colspan="8" class="text-center">Unable to load items</td></tr>');
             }
-        });
-    };
-
-    $('#itemSearch').on('input', function () {
-        const query = $(this).val().toLowerCase();
-        $('#ibody tr').each(function () {
-            const rowText = $(this).text().toLowerCase();
-            $(this).toggle(rowText.includes(query));
-        });
+        },
+        columns: [
+            { data: 'id' },
+            {
+                data: 'image',
+                orderable: false,
+                render: function (image) {
+                    return `<img src="${buildImageUrl(image)}" width="50" height="60">`;
+                }
+            },
+            { data: 'name', defaultContent: '' },
+            { data: 'description', defaultContent: '' },
+            {
+                data: 'buy_price',
+                render: function (buy_price) {
+                    return `₱ ${Number(buy_price || 0).toFixed(2)}`;
+                }
+            },
+            {
+                data: 'sell_price',
+                render: function (sell_price) {
+                    return `₱ ${Number(sell_price || 0).toFixed(2)}`;
+                }
+            },
+            { data: 'stock', defaultContent: 0 },
+            {
+                data: 'id',
+                orderable: false,
+                render: function (id) {
+                    return `
+                        <a href='#' class='editBtn' data-id='${id}'><i class='fas fa-edit' aria-hidden='true' style='font-size:24px'></i></a>
+                        <a href='#' class='deletebtn' data-id='${id}'><i class='fas fa-trash-alt' style='font-size:24px; color:red'></i></a>
+                    `;
+                }
+            }
+        ]
     });
 
-    loadItems();
+    const reloadItems = () => {
+        itemsTable.ajax.reload(null, false);
+    };
 
     $('button[data-target="#itemModal"]').on('click', function () {
         $('#iform')[0].reset();
         $('#itemId').val('');
         $('#itemSubmit').show();
         $('#itemUpdate').hide();
-        $('#itemImagePreview').remove();
+        $('#itemImagePreviews').empty();
     });
 
     $('#itemModal').on('hidden.bs.modal', function () {
@@ -97,7 +99,7 @@ $(document).ready(function () {
         $('#itemId').val('');
         $('#itemSubmit').show();
         $('#itemUpdate').hide();
-        $('#itemImagePreview').remove();
+        $('#itemImagePreviews').empty();
     });
 
     $('#itemSubmit').on('click', function (e) {
@@ -118,7 +120,7 @@ $(document).ready(function () {
                 Swal.fire({ icon: 'success', text: data.message || 'Item saved' });
                 $('#itemModal').modal('hide');
                 $('#iform')[0].reset();
-                loadItems();
+                reloadItems();
             },
             error: function (error) {
                 Swal.fire({ icon: 'error', text: error.responseJSON?.error || 'Unable to save item' });
@@ -142,6 +144,7 @@ $(document).ready(function () {
             headers: { Authorization: `Bearer ${getToken()}` },
             success: function (data) {
                 const item = data.result || {};
+                const images = Array.isArray(data.images) ? data.images : [];
                 $('#itemName').val(item.name || '');
                 $('#itemDescription').val(item.description || '');
                 $('#itemBrand').val(item.brand || '');
@@ -149,10 +152,13 @@ $(document).ready(function () {
                 $('#itemSellPrice').val(item.sell_price || '');
                 $('#itemStock').val(item.stock || 0);
                 $('#itemCategoryId').val(item.category_id || 1);
-                $('#itemImagePreview').remove();
-                if (item.image) {
-                    $('#iform').append(`<img id="itemImagePreview" src="${buildImageUrl(item.image)}" width="120" class="mt-2" />`);
-                }
+
+                $('#itemImagePreviews').empty();
+                images.forEach(function (img) {
+                    $('#itemImagePreviews').append(
+                        `<img src="${buildImageUrl(img.image_path)}" width="120" class="mt-2 mr-2" />`
+                    );
+                });
             },
             error: function (error) {
                 console.log(error);
@@ -177,7 +183,7 @@ $(document).ready(function () {
             headers: { Authorization: `Bearer ${token}` },
             success: function () {
                 $('#itemModal').modal('hide');
-                loadItems();
+                reloadItems();
             },
             error: function (error) {
                 console.log(error);
@@ -203,7 +209,7 @@ $(document).ready(function () {
                     dataType: 'json',
                     headers: { Authorization: `Bearer ${token}` },
                     success: function () {
-                        loadItems();
+                        reloadItems();
                         bootbox.alert('Item deleted successfully');
                     },
                     error: function (error) {
