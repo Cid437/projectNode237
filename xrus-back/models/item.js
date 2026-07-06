@@ -1,15 +1,27 @@
 module.exports = (sequelize, DataTypes) => {
     const Item = sequelize.define('Item', {
-        item_id: {
+        id: {
             type: DataTypes.INTEGER,
             primaryKey: true,
             autoIncrement: true
         },
-        description: {
-            type: DataTypes.STRING,
+        category_id: {
+            type: DataTypes.INTEGER,
             allowNull: false
         },
-        cost_price: {
+        name: {
+            type: DataTypes.STRING(150),
+            allowNull: false
+        },
+        description: {
+            type: DataTypes.TEXT,
+            allowNull: true
+        },
+        brand: {
+            type: DataTypes.STRING(100),
+            allowNull: true
+        },
+        buy_price: {
             type: DataTypes.DECIMAL(10, 2),
             allowNull: false
         },
@@ -17,14 +29,25 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.DECIMAL(10, 2),
             allowNull: false
         },
-        img_path: {
-            type: DataTypes.STRING,
+        stock: {
+            type: DataTypes.INTEGER,
+            allowNull: false,
+            defaultValue: 0
+        },
+        image: {
+            type: DataTypes.STRING(255),
             allowNull: true
+        },
+        status: {
+            type: DataTypes.ENUM('active', 'inactive'),
+            allowNull: false,
+            defaultValue: 'active'
         }
     }, {
-        tableName: 'item',
+        tableName: 'items',
         timestamps: true,
         underscored: true
     });
+
     return Item;
 };

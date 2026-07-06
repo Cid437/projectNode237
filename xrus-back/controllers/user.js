@@ -1,4 +1,7 @@
 const sequelize = require('../config/database');
+const db = require('../models');
+const { User } = db;
+const { Op } = require('sequelize');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
@@ -12,11 +15,9 @@ const ensureUniqueUsername = async (value) => {
     let suffix = 0;
 
     while (true) {
-        const [rows] = await sequelize.query('SELECT id FROM users WHERE username = ? LIMIT 1', {
-            replacements: [candidate]
-        });
+        const existing = await User.findOne({ where: { username: candidate }, attributes: ['id'] });
 
-        if (!rows.length) {
+        if (!existing) {
             return candidate;
         }
 
@@ -33,11 +34,8 @@ const registerUser = async (req, res) => {
             return res.status(400).json({ error: 'Name, email, and password are required' });
         }
 
-        const [existing] = await sequelize.query('SELECT id FROM users WHERE email = ? LIMIT 1', {
-            replacements: [email]
-        });
-
-        if (existing.length) {
+        const existing = await User.findOne({ where: { email }, attributes: ['id'] });
+        if (existing) {
             return res.status(409).json({ error: 'Email already exists' });
         }
 
@@ -47,18 +45,21 @@ const registerUser = async (req, res) => {
         const userName = username || buildUsername(name || email);
         const safeUsername = await ensureUniqueUsername(userName);
 
-        const [result] = await sequelize.query(
-            'INSERT INTO users (first_name, last_name, username, email, password, role, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            {
-                replacements: [firstName, lastName, safeUsername, email, hashedPassword, role, 'active']
-            }
-        );
+        const user = await User.create({
+            first_name: firstName,
+            last_name: lastName,
+            username: safeUsername,
+            email,
+            password: hashedPassword,
+            role,
+            status: 'active'
+        });
 
         return res.status(201).json({
             success: true,
             message: 'User registered successfully',
             user: {
-                id: result.insertId,
+                id: user.id,
                 first_name: firstName,
                 last_name: lastName,
                 email
@@ -78,16 +79,12 @@ const loginUser = async (req, res) => {
             return res.status(400).json({ error: 'Email and password are required' });
         }
 
-        const [users] = await sequelize.query(
-            'SELECT id, first_name, last_name, email, password, role, status FROM users WHERE email = ? LIMIT 1',
-            { replacements: [email] }
-        );
+        const user = await User.findOne({ where: { email } });
 
-        if (!users.length) {
+        if (!user) {
             return res.status(401).json({ success: false, message: 'Invalid email or password' });
         }
 
-        const user = users[0];
         if (user.status !== 'active') {
             return res.status(401).json({ success: false, message: 'Account is inactive' });
         }
@@ -98,7 +95,7 @@ const loginUser = async (req, res) => {
         }
 
         const token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET || 'xrus-secret');
-        await sequelize.query('UPDATE users SET token = ? WHERE id = ?', { replacements: [token, user.id] });
+        await user.update({ token });
 
         return res.status(200).json({
             success: true,
@@ -127,17 +124,17 @@ const updateUser = async (req, res) => {
             return res.status(400).json({ error: 'User ID is required' });
         }
 
-        const [users] = await sequelize.query('SELECT id FROM users WHERE id = ? LIMIT 1', { replacements: [userId] });
-        if (!users.length) {
+        const user = await User.findByPk(userId);
+        if (!user) {
             return res.status(404).json({ error: 'User not found' });
         }
 
-        await sequelize.query(
-            'UPDATE users SET first_name = ?, last_name = ?, address = ?, phone = ? WHERE id = ?',
-            {
-                replacements: [fname || null, lname || null, addressline || null, phone || null, userId]
-            }
-        );
+        await user.update({
+            first_name: fname || null,
+            last_name: lname || null,
+            address: addressline || null,
+            phone: phone || null
+        });
 
         return res.status(200).json({
             success: true,
@@ -157,17 +154,15 @@ const deactivateUser = async (req, res) => {
             return res.status(400).json({ error: 'Email or ID is required' });
         }
 
-        const [users] = await sequelize.query('SELECT id FROM users WHERE id = ? OR email = ? LIMIT 1', {
-            replacements: [id, email]
+        const user = await User.findOne({
+            where: { [Op.or]: [{ id: id || 0 }, { email: email || '' }] }
         });
 
-        if (!users.length) {
+        if (!user) {
             return res.status(404).json({ error: 'User not found' });
         }
 
-        await sequelize.query('UPDATE users SET status = ?, token = NULL WHERE id = ?', {
-            replacements: ['inactive', users[0].id]
-        });
+        await user.update({ status: 'inactive', token: null });
 
         return res.status(200).json({
             success: true,
@@ -188,17 +183,12 @@ const updateUserStatus = async (req, res) => {
             return res.status(400).json({ error: 'Status must be active or inactive' });
         }
 
-        const [users] = await sequelize.query('SELECT id FROM users WHERE id = ? LIMIT 1', {
-            replacements: [id]
-        });
-
-        if (!users.length) {
+        const user = await User.findByPk(id);
+        if (!user) {
             return res.status(404).json({ error: 'User not found' });
         }
 
-        await sequelize.query('UPDATE users SET status = ?, token = NULL WHERE id = ?', {
-            replacements: [status, id]
-        });
+        await user.update({ status, token: null });
 
         return res.status(200).json({
             success: true,
@@ -218,29 +208,29 @@ const createUser = async (req, res) => {
             return res.status(400).json({ error: 'Email and password are required' });
         }
 
-        const [existing] = await sequelize.query('SELECT id FROM users WHERE email = ? LIMIT 1', {
-            replacements: [email]
-        });
-
-        if (existing.length) {
+        const existing = await User.findOne({ where: { email }, attributes: ['id'] });
+        if (existing) {
             return res.status(409).json({ error: 'Email already exists' });
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
         const safeUsername = await ensureUniqueUsername(username || email.split('@')[0]);
 
-        const [result] = await sequelize.query(
-            'INSERT INTO users (first_name, last_name, username, email, password, role, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            {
-                replacements: [first_name || '', last_name || '', safeUsername, email, hashedPassword, role, status]
-            }
-        );
+        const user = await User.create({
+            first_name: first_name || '',
+            last_name: last_name || '',
+            username: safeUsername,
+            email,
+            password: hashedPassword,
+            role,
+            status
+        });
 
         return res.status(201).json({
             success: true,
             message: 'User created successfully',
             user: {
-                id: result.insertId,
+                id: user.id,
                 first_name: first_name || '',
                 last_name: last_name || '',
                 email,
@@ -256,11 +246,12 @@ const createUser = async (req, res) => {
 
 const getAllUsers = async (req, res) => {
     try {
-        const [rows] = await sequelize.query(
-            'SELECT id, first_name, last_name, username, email, role, status, created_at FROM users ORDER BY id DESC'
-        );
+        const users = await User.findAll({
+            attributes: ['id', 'first_name', 'last_name', 'username', 'email', 'role', 'status', 'created_at'],
+            order: [['id', 'DESC']]
+        });
 
-        return res.status(200).json({ rows });
+        return res.status(200).json({ rows: users });
     } catch (error) {
         console.log(error);
         return res.status(500).json({ error: 'Error fetching users', details: error.message });
@@ -272,25 +263,23 @@ const updateUserByAdmin = async (req, res) => {
         const { id } = req.params;
         const { first_name, last_name, username, email, role, status } = req.body;
 
-        const [users] = await sequelize.query('SELECT id, username, email FROM users WHERE id = ? LIMIT 1', {
-            replacements: [id]
-        });
-
-        if (!users.length) {
+        const user = await User.findByPk(id);
+        if (!user) {
             return res.status(404).json({ error: 'User not found' });
         }
 
-        const currentUser = users[0];
-        const nextUsername = username || currentUser.username;
-        const nextEmail = email || currentUser.email;
-        const safeUsername = nextUsername === currentUser.username ? nextUsername : await ensureUniqueUsername(nextUsername);
+        const nextUsername = username || user.username;
+        const nextEmail = email || user.email;
+        const safeUsername = nextUsername === user.username ? nextUsername : await ensureUniqueUsername(nextUsername);
 
-        await sequelize.query(
-            'UPDATE users SET first_name = ?, last_name = ?, username = ?, email = ?, role = ?, status = ? WHERE id = ?',
-            {
-                replacements: [first_name || '', last_name || '', safeUsername, nextEmail, role || 'customer', status || 'active', id]
-            }
-        );
+        await user.update({
+            first_name: first_name || '',
+            last_name: last_name || '',
+            username: safeUsername,
+            email: nextEmail,
+            role: role || 'customer',
+            status: status || 'active'
+        });
 
         return res.status(200).json({ success: true, message: 'User updated successfully' });
     } catch (error) {
@@ -302,15 +291,18 @@ const updateUserByAdmin = async (req, res) => {
 const deleteUserByAdmin = async (req, res) => {
     try {
         const { id } = req.params;
-        const [users] = await sequelize.query('SELECT id FROM users WHERE id = ? LIMIT 1', { replacements: [id] });
+        const user = await User.findByPk(id);
 
-        if (!users.length) {
+        if (!user) {
             return res.status(404).json({ error: 'User not found' });
         }
 
+        // orders/order_items have no model yet, so those two relations
+        // are still cleared with raw queries same as before.
         await sequelize.query('DELETE FROM order_items WHERE order_id IN (SELECT id FROM orders WHERE user_id = ?)', { replacements: [id] });
         await sequelize.query('DELETE FROM orders WHERE user_id = ?', { replacements: [id] });
-        await sequelize.query('DELETE FROM users WHERE id = ?', { replacements: [id] });
+        await user.destroy();
+
         return res.status(200).json({ success: true, message: 'User deleted successfully' });
     } catch (error) {
         console.log(error);
@@ -327,7 +319,7 @@ const updateUserRole = async (req, res) => {
             return res.status(400).json({ error: 'Role is required' });
         }
 
-        await sequelize.query('UPDATE users SET role = ? WHERE id = ?', { replacements: [role, id] });
+        await User.update({ role }, { where: { id } });
         return res.status(200).json({ success: true, message: 'User role updated' });
     } catch (error) {
         console.log(error);
@@ -338,163 +330,20 @@ const updateUserRole = async (req, res) => {
 const getProfile = async (req, res) => {
     try {
         const userId = req.user.id;
-        const [users] = await sequelize.query(
-            'SELECT id, first_name, last_name, username, email, phone, address, role FROM users WHERE id = ? LIMIT 1',
-            { replacements: [userId] }
-        );
+        const user = await User.findOne({
+            where: { id: userId },
+            attributes: ['id', 'first_name', 'last_name', 'username', 'email', 'phone', 'address', 'role']
+        });
 
-        if (!users.length) {
+        if (!user) {
             return res.status(404).json({ error: 'User not found' });
         }
 
-        return res.status(200).json({ success: true, user: users[0] });
+        return res.status(200).json({ success: true, user });
     } catch (error) {
         console.log(error);
         return res.status(500).json({ error: 'Error fetching profile', details: error.message });
     }
 };
 
-module.exports = { registerUser, loginUser, updateUser, deactivateUser, updateUserStatus, createUser, getAllUsers, updateUserByAdmin, deleteUserByAdmin, updateUserRole, getProfile };// const connection = require('../config/_database');
-// const bcrypt = require('bcrypt')
-// const jwt = require('jsonwebtoken')
-
-// const registerUser = async (req, res) => {
-//     // {
-//     //   "name": "steve",
-//     //   "email": "steve@gmail.com",
-//     //   "password": "password"
-//     // }
-//     console.log(req.body)
-//     const { name, password, email, } = req.body;
-//     const hashedPassword = await bcrypt.hash(password, 10);
-//     const userSql = 'INSERT INTO users (name, password, email) VALUES (?, ?, ?)';
-//     try {
-//         connection.execute(userSql, [name, hashedPassword, email], (err, result) => {
-//             if (err instanceof Error) {
-//                 console.log(err);
-
-//                 return res.status(401).json({
-//                     error: err
-//                 });
-//             }
-
-//             return res.status(200).json({
-//                 success: true,
-//                 result
-//             })
-//         });
-//     } catch (error) {
-//         console.log(error)
-//     }
-
-// };
-
-// const loginUser = (req, res) => {
-//     const { email, password } = req.body;
-//     const sql = 'SELECT id, name, email, password FROM users WHERE email = ? AND deleted_at IS NULL';
-//     connection.execute(sql, [email], async (err, results) => {
-//         if (err) {
-//             console.log(err);
-//             return res.status(500).json({ error: 'Error logging in', details: err });
-//         }
-//         if (results.length === 0) {
-//             return res.status(401).json({ success: false, message: 'Invalid email or password' });
-//         }
-
-//         const user = results[0];
-
-//         const match = await bcrypt.compare(password, user.password);
-//         if (!match) {
-//             return res.status(401).json({ success: false, message: 'Invalid email or password' });
-//         }
-
-//         // Remove password from response
-//         delete user.password;
-//         const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET,);
-
-//         return res.status(200).json({
-//             success: "welcome back",
-//             user: results[0],
-//             token
-//         });
-//     });
-// };
-
-// const updateUser = (req, res) => {
-//     // {
-//     //   "name": "steve",
-//     //   "email": "steve@gmail.com",
-//     //   "password": "password"
-//     // }
-//     console.log(req.body, req.file)
-//     const { fname, lname, addressline, town, zipcode, phone, userId, } = req.body;
-
-//     if (req.file) {
-//         image = req.file.path.replace(/\\/g, "/");
-//     }
-//     //     INSERT INTO users(user_id, username, email)
-//     //   VALUES(1, 'john_doe', 'john@example.com')
-//     // ON DUPLICATE KEY UPDATE email = 'john@example.com';
-//     const userSql = `
-//   INSERT INTO customer 
-//     (fname, lname, addressline,  zipcode, phone, image_path, user_id)
-//   VALUES (?, ?, ?, ?, ?, ?, ?)
-//   ON DUPLICATE KEY UPDATE 
-//     fname = VALUES(fname),
-//     lname = VALUES(lname),
-//     addressline = VALUES(addressline),
-   
-//     zipcode = VALUES(zipcode),
-//     phone = VALUES(phone),
-//     image_path = VALUES(image_path)`;
-//     const params = [fname, lname, addressline, zipcode, phone, image, userId];
-
-//     try {
-//         connection.execute(userSql, params, (err, result) => {
-//             if (err instanceof Error) {
-//                 console.log(err);
-
-//                 return res.status(401).json({
-//                     error: err
-//                 });
-//             }
-
-//             return res.status(200).json({
-//                 success: true,
-//                 message: 'profile updated',
-//                 result
-//             })
-//         });
-//     } catch (error) {
-//         console.log(error)
-//     }
-
-// };
-
-// const deactivateUser = (req, res) => {
-//     const { email } = req.body;
-//     if (!email) {
-//         return res.status(400).json({ error: 'Email is required' });
-//     }
-
-//     const sql = 'UPDATE users SET deleted_at = ? WHERE email = ?';
-//     const timestamp = new Date();
-
-//     connection.execute(sql, [timestamp, email], (err, result) => {
-//         if (err) {
-//             console.log(err);
-//             return res.status(500).json({ error: 'Error deactivating user', details: err });
-//         }
-//         if (result.affectedRows === 0) {
-//             return res.status(404).json({ error: 'User not found' });
-//         }
-//         return res.status(200).json({
-//             success: true,
-//             message: 'User deactivated successfully',
-//             email,
-//             deleted_at: timestamp
-//         });
-//     });
-// };
-
-// module.exports = { registerUser, loginUser, updateUser, deactivateUser };
+module.exports = { registerUser, loginUser, updateUser, deactivateUser, updateUserStatus, createUser, getAllUsers, updateUserByAdmin, deleteUserByAdmin, updateUserRole, getProfile };

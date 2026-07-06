@@ -23,58 +23,64 @@ $(document).ready(function () {
 
   $('#updateUserBtn').hide();
 
-  const loadUsers = () => {
-    const token = getToken();
-    if (!token) return;
-
-    $.ajax({
-      method: 'GET',
-      url: `${url}/api/v1/users`,
-      dataType: 'json',
-      headers: { Authorization: `Bearer ${token}` },
-      success: function (data) {
-        const users = Array.isArray(data.rows) ? data.rows : [];
-        const body = $('#usersBody');
-        body.empty();
-
-        if (!users.length) {
-          body.html('<tr><td colspan="6" class="text-center">No users found</td></tr>');
-          return;
-        }
-
-        body.html(users.map(user => `
-          <tr>
-            <td>${user.id}</td>
-            <td>${user.first_name || ''} ${user.last_name || ''}</td>
-            <td>${user.email}</td>
-            <td>
-              <select class="form-control form-control-sm role-select" data-id="${user.id}">
-                <option value="customer" ${user.role === 'customer' ? 'selected' : ''}>Customer</option>
-                <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Admin</option>
-              </select>
-            </td>
-            <td>${user.status}</td>
-            <td>
-              <button class="btn btn-sm btn-primary update-role" data-id="${user.id}">Update Role</button>
-              <button class="btn btn-sm btn-outline-primary toggle-status" data-id="${user.id}" data-status="${user.status}">
-                ${user.status === 'active' ? 'Deactivate' : 'Activate'}
-              </button>
-              <button class="btn btn-sm btn-outline-info edit-user" data-id="${user.id}" data-first-name="${user.first_name || ''}" data-last-name="${user.last_name || ''}" data-username="${user.username || ''}" data-email="${user.email || ''}" data-role="${user.role || 'customer'}" data-status="${user.status || 'active'}">Edit</button>
-              <button class="btn btn-sm btn-outline-danger delete-user" data-id="${user.id}">Delete</button>
-            </td>
-          </tr>
-        `).join(''));
-      },
-      error: function (error) {
-        console.log(error);
-        $('#usersBody').html('<tr><td colspan="6" class="text-center">Unable to load users</td></tr>');
-      }
-    });
-  };
-
   $('#home').load('header.html', function () {
     $('.admin-only').toggle(role === 'admin');
   });
+
+  // DataTables now handles AJAX loading, pagination, sorting and searching
+  const usersTable = $('#usersTable').DataTable({
+    ajax: {
+      url: `${url}/api/v1/users`,
+      headers: { Authorization: `Bearer ${getToken()}` },
+      dataSrc: function (data) {
+        return Array.isArray(data.rows) ? data.rows : [];
+      },
+      error: function (error) {
+        console.log(error);
+      }
+    },
+    columns: [
+      { data: 'id' },
+      {
+        data: null,
+        render: function (row) {
+          return `${row.first_name || ''} ${row.last_name || ''}`;
+        }
+      },
+      { data: 'email' },
+      {
+        data: 'role',
+        orderable: false,
+        render: function (roleValue, type, row) {
+          return `
+            <select class="form-control form-control-sm role-select" data-id="${row.id}">
+              <option value="customer" ${roleValue === 'customer' ? 'selected' : ''}>Customer</option>
+              <option value="admin" ${roleValue === 'admin' ? 'selected' : ''}>Admin</option>
+            </select>
+          `;
+        }
+      },
+      { data: 'status' },
+      {
+        data: null,
+        orderable: false,
+        render: function (row) {
+          return `
+            <button class="btn btn-sm btn-primary update-role" data-id="${row.id}">Update Role</button>
+            <button class="btn btn-sm btn-outline-primary toggle-status" data-id="${row.id}" data-status="${row.status}">
+              ${row.status === 'active' ? 'Deactivate' : 'Activate'}
+            </button>
+            <button class="btn btn-sm btn-outline-info edit-user" data-id="${row.id}" data-first-name="${row.first_name || ''}" data-last-name="${row.last_name || ''}" data-username="${row.username || ''}" data-email="${row.email || ''}" data-role="${row.role || 'customer'}" data-status="${row.status || 'active'}">Edit</button>
+            <button class="btn btn-sm btn-outline-danger delete-user" data-id="${row.id}">Delete</button>
+          `;
+        }
+      }
+    ]
+  });
+
+  const reloadUsers = () => {
+    usersTable.ajax.reload(null, false);
+  };
 
   $('#addUserBtn').on('click', function () {
     $('#userForm')[0].reset();
@@ -113,7 +119,7 @@ $(document).ready(function () {
       success: function (data) {
         Swal.fire({ icon: 'success', text: data.message || 'User created', timer: 1200, showConfirmButton: false });
         $('#userModal').modal('hide');
-        loadUsers();
+        reloadUsers();
       },
       error: function (error) {
         Swal.fire({ icon: 'error', text: error.responseJSON?.message || error.responseJSON?.error || 'Unable to create user' });
@@ -121,7 +127,7 @@ $(document).ready(function () {
     });
   });
 
-  $(document).on('click', '.edit-user', function () {
+  $('#usersTable tbody').on('click', '.edit-user', function () {
     $('#userId').val($(this).data('id'));
     $('#userFirstName').val($(this).data('first-name'));
     $('#userLastName').val($(this).data('last-name'));
@@ -163,7 +169,7 @@ $(document).ready(function () {
       success: function (data) {
         Swal.fire({ icon: 'success', text: data.message || 'User updated', timer: 1200, showConfirmButton: false });
         $('#userModal').modal('hide');
-        loadUsers();
+        reloadUsers();
       },
       error: function (error) {
         Swal.fire({ icon: 'error', text: error.responseJSON?.message || error.responseJSON?.error || 'Unable to update user' });
@@ -171,7 +177,7 @@ $(document).ready(function () {
     });
   });
 
-  $(document).on('click', '.toggle-status', function () {
+  $('#usersTable tbody').on('click', '.toggle-status', function () {
     const token = getToken();
     if (!token) return;
 
@@ -186,7 +192,7 @@ $(document).ready(function () {
       headers: { Authorization: `Bearer ${token}` },
       success: function (data) {
         Swal.fire({ icon: 'success', text: data.message || 'User status updated', timer: 1200, showConfirmButton: false });
-        loadUsers();
+        reloadUsers();
       },
       error: function (error) {
         Swal.fire({ icon: 'error', text: error.responseJSON?.message || error.responseJSON?.error || 'Unable to update status' });
@@ -194,7 +200,7 @@ $(document).ready(function () {
     });
   });
 
-  $(document).on('click', '.update-role', function () {
+  $('#usersTable tbody').on('click', '.update-role', function () {
     const token = getToken();
     if (!token) return;
 
@@ -209,7 +215,7 @@ $(document).ready(function () {
       headers: { Authorization: `Bearer ${token}` },
       success: function (data) {
         Swal.fire({ icon: 'success', text: data.message || 'User role updated', timer: 1200, showConfirmButton: false });
-        loadUsers();
+        reloadUsers();
       },
       error: function (error) {
         Swal.fire({ icon: 'error', text: error.responseJSON?.message || error.responseJSON?.error || 'Unable to update role' });
@@ -217,7 +223,7 @@ $(document).ready(function () {
     });
   });
 
-  $(document).on('click', '.delete-user', function () {
+  $('#usersTable tbody').on('click', '.delete-user', function () {
     const token = getToken();
     if (!token) return;
 
@@ -237,7 +243,7 @@ $(document).ready(function () {
         headers: { Authorization: `Bearer ${token}` },
         success: function (data) {
           Swal.fire({ icon: 'success', text: data.message || 'User deleted', timer: 1200, showConfirmButton: false });
-          loadUsers();
+          reloadUsers();
         },
         error: function (error) {
           Swal.fire({ icon: 'error', text: error.responseJSON?.message || error.responseJSON?.error || 'Unable to delete user' });
@@ -245,6 +251,4 @@ $(document).ready(function () {
       });
     });
   });
-
-  loadUsers();
 });
