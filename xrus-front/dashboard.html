@@ -58,19 +58,41 @@
   </head>
   <body>
     <div id="home"></div>
-    <div>
-      <canvas id="addressChart"></canvas>
-    </div>
+    <div class="container">
+      <h1 class="mb-4">Dashboard</h1>
 
-    <div>
-      <canvas id="salesChart"></canvas>
-    </div>
+      <div class="row">
+        <div class="col-md-6 mb-4">
+          <div class="card h-100">
+            <div class="card-body">
+              <h5 class="card-title">Customers per Town</h5>
+              <canvas id="addressChart"></canvas>
+            </div>
+          </div>
+        </div>
 
-    <div
-      class="chart-container"
-      style="position: relative; height: 40vh; width: 80vw"
-    >
-      <canvas id="itemsChart"></canvas>
+        <div class="col-md-6 mb-4">
+          <div class="card h-100">
+            <div class="card-body">
+              <h5 class="card-title">Monthly Sales</h5>
+              <canvas id="salesChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-8 offset-md-2 mb-4">
+          <div class="card">
+            <div class="card-body">
+              <h5 class="card-title">Items Sold</h5>
+              <div style="position: relative; height: 40vh;">
+                <canvas id="itemsChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </body>
 </html>

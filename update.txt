@@ -108,3 +108,14 @@ This document lists everything that was modified during the implementation and f
 - fix issue where added items are all present on all carts regardless of user
 - fix issue where user cannot checkout their order
 - item stock now decreases after succesful user checkout
+
+
+- - - - - - - - - - - - - - -
+7/6/2026 - 8:30 PM
+
+13. Front End Design Improvements
+- Adjusted header for all pages where it appeared to float
+- Added Missing header for login and register, cart pages
+- Added Missing header for admin pages: item, users, orders
+- Adjusted Admin dashboard where some results overtake the whole page
+- Improved CSS Design from classic bootsrap blue to gray

@@ -1,6 +1,8 @@
 $(document).ready(function () {
     const url = 'http://localhost:4000/'
 
+    $('#home').load('header.html');
+
     $('#loginForm').on('submit', function (e) {
         e.preventDefault();
 

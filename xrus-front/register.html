@@ -2,7 +2,8 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>items</title>
+    <title>Register</title>
+
     <!-- Latest compiled and minified CSS -->
     <link
       rel="stylesheet"
@@ -13,26 +14,13 @@
 
     <link
       rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.21/css/dataTables.bootstrap4.min.css"
-      integrity="sha512-PT0RvABaDhDQugEbpNMwgYBCnGCiTZMh9yOzUsJHDgl/dMhD9yjHAwoumnUk3JydV3QTcIkNDuN40CJxik5+WQ=="
-      crossorigin="anonymous"
-      referrerpolicy="no-referrer"
-    />
-    <link
-      href="https://use.fontawesome.com/releases/v5.0.6/css/all.css"
-      rel="stylesheet"
-    />
-   
-
-    
-    
-    <link
-      rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.16.1/sweetalert2.css"
       integrity="sha512-fjO3Vy3QodX9c6G9AUmr6WuIaEPdGRxBjD7gjatG5gGylzYyrEq3U0q+smkG6CwIY0L8XALRFHh4KPHig0Q1ug=="
       crossorigin="anonymous"
       referrerpolicy="no-referrer"
     />
+    <link rel="stylesheet" href="css/style.css" />
+
     <script
       src="https://code.jquery.com/jquery-3.6.4.min.js"
       integrity="sha256-oP6HI9z1XaZNBrJURtCoUT5SUnxFr8s3BzRl+cbzUq8="
@@ -49,13 +37,6 @@
       crossorigin="anonymous"
     ></script>
     <script
-      src="https://cdnjs.cloudflare.com/ajax/libs/bootbox.js/5.5.2/bootbox.min.js"
-      integrity="sha512-RdSPYh1WA6BF0RhpisYJVYkOyTzK4HwofJ3Q7ivt/jkpW6Vc8AurL1R+4AUcvn9IwEKAPm/fk7qFZW3OuiUDeg=="
-      crossorigin="anonymous"
-      referrerpolicy="no-referrer"
-    ></script>
-   
-    <script
       src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.16.1/sweetalert2.min.js"
       integrity="sha512-LGHBR+kJ5jZSIzhhdfytPoEHzgaYuTRifq9g5l6ja6/k9NAOsAi5dQh4zQF6JIRB8cAYxTRedERUF+97/KuivQ=="
       crossorigin="anonymous"
@@ -65,56 +46,29 @@
     <script src="js/helpers.js"></script>
     <script src="js/register.js"></script>
   </head>
-
-    <title>register</title>
-  </head>
   <body>
-    <form id="registerForm" style="max-width: 400px; margin: auto">
-      <h2>Register</h2>
-      <div style="margin-bottom: 15px">
-        <label for="name">Name:</label><br />
-        <input
-          type="text"
-          id="name"
-          name="name"
-          required
-          style="width: 100%; padding: 8px"
-        />
+    <div id="home"></div>
+
+    <div class="auth-wrapper">
+      <div class="auth-card">
+        <h2>Register</h2>
+        <form id="registerForm">
+          <div class="form-group">
+            <label for="name">Name</label>
+            <input type="text" class="form-control" id="name" name="name" required />
+          </div>
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" class="form-control" id="email" name="email" required />
+          </div>
+          <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" class="form-control" id="password" name="password" required />
+          </div>
+          <button type="submit" class="btn btn-primary btn-block" id="register">Register</button>
+        </form>
+        <p class="auth-switch">Already have an account? <a href="login.html">Login</a></p>
       </div>
-      <div style="margin-bottom: 15px">
-        <label for="email">Email:</label><br />
-        <input
-          type="email"
-          id="email"
-          name="email"
-          required
-          style="width: 100%; padding: 8px"
-        />
-      </div>
-      <div style="margin-bottom: 15px">
-        <label for="password">Password:</label><br />
-        <input
-          type="password"
-          id="password"
-          name="password"
-          required
-          style="width: 100%; padding: 8px"
-        />
-      </div>
-      <button
-        type="submit"
-        style="
-          width: 100%;
-          padding: 10px;
-          background: #007bff;
-          color: #fff;
-          border: none;
-          border-radius: 4px;
-        "
-        id="register"
-      >
-        Register
-      </button>
-    </form>
+    </div>
   </body>
 </html>
