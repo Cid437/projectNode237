@@ -35,6 +35,18 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.TEXT,
             allowNull: true
         },
+        address: {
+            type: DataTypes.TEXT,
+            allowNull: true
+        },
+        town: {
+            type: DataTypes.STRING(100),
+            allowNull: true
+        },
+        zipcode: {
+            type: DataTypes.STRING(10),
+            allowNull: true
+        },
         role: {
             type: DataTypes.ENUM('customer', 'admin'),
             allowNull: false,

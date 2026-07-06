@@ -1,6 +1,7 @@
 const sequelize = require('../config/database');
 const sendEmail = require('../utils/sendEmail');
-const { QueryTypes } = require('sequelize');
+const db = require('../models');
+const { Order, OrderItem, Item, User } = db;
 
 const buildReceiptPdf = (orderNumber, order, items) => {
     const lines = [
@@ -41,23 +42,23 @@ exports.createOrder = async (req, res) => {
         const itemsSnapshot = {};
 
         for (const cartItem of cart) {
-            const [itemRows] = await sequelize.query(
-                'SELECT id, sell_price, stock FROM items WHERE id = ? LIMIT 1',
-                { replacements: [cartItem.item_id] }
-            );
+            const itemRow = await Item.findOne({
+                where: { id: cartItem.item_id },
+                attributes: ['id', 'sell_price', 'stock']
+            });
 
-            if (!itemRows.length) {
+            if (!itemRow) {
                 unavailableItems.push(cartItem.item_id);
                 continue;
             }
 
             const quantity = parseInt(cartItem.quantity || 1, 10);
-            if (itemRows[0].stock < quantity) {
-                insufficientItems.push({ item_id: cartItem.item_id, available: itemRows[0].stock });
+            if (itemRow.stock < quantity) {
+                insufficientItems.push({ item_id: cartItem.item_id, available: itemRow.stock });
                 continue;
             }
 
-            itemsSnapshot[cartItem.item_id] = itemRows[0];
+            itemsSnapshot[cartItem.item_id] = itemRow;
         }
 
         if (unavailableItems.length || insufficientItems.length) {
@@ -71,12 +72,13 @@ exports.createOrder = async (req, res) => {
         const transaction = await sequelize.transaction();
 
         try {
-            const [userRows] = await sequelize.query('SELECT id, email, first_name, last_name FROM users WHERE id = ? LIMIT 1', {
-                replacements: [userId],
+            const userRow = await User.findOne({
+                where: { id: userId },
+                attributes: ['id', 'email', 'first_name', 'last_name'],
                 transaction
             });
 
-            if (!userRows.length) {
+            if (!userRow) {
                 await transaction.rollback();
                 return res.status(404).json({ error: 'User not found' });
             }
@@ -85,15 +87,19 @@ exports.createOrder = async (req, res) => {
             const totalAmount = subtotal + parseFloat(shipping_fee || 0) - parseFloat(discount || 0);
             const orderNumber = `ORD-${Date.now()}`;
 
-            const [orderId] = await sequelize.query(
-                'INSERT INTO orders (user_id, order_number, subtotal, shipping_fee, discount, total_amount, payment_method, payment_status, order_status, shipping_address) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                {
-                    replacements: [userId, orderNumber, subtotal.toFixed(2), shipping_fee, discount, totalAmount.toFixed(2), payment_method, 'Pending', 'Pending', shipping_address],
-                    transaction,
-                    type: QueryTypes.INSERT
-                }
-            );
-            
+            const order = await Order.create({
+                user_id: userId,
+                order_number: orderNumber,
+                subtotal: subtotal.toFixed(2),
+                shipping_fee,
+                discount,
+                total_amount: totalAmount.toFixed(2),
+                payment_method,
+                payment_status: 'Pending',
+                order_status: 'Pending',
+                shipping_address
+            }, { transaction });
+
             const receiptItems = [];
 
             for (const item of cart) {
@@ -101,18 +107,18 @@ exports.createOrder = async (req, res) => {
                 const unitPrice = parseFloat(item.price || itemsSnapshot[item.item_id].sell_price || 0);
                 const lineSubtotal = (unitPrice * quantity).toFixed(2);
 
-                await sequelize.query(
-                    'INSERT INTO order_items (order_id, item_id, quantity, price, subtotal) VALUES (?, ?, ?, ?, ?)',
-                    {
-                        replacements: [orderId, item.item_id, quantity, unitPrice.toFixed(2), lineSubtotal],
-                        transaction
-                    }
-                );
+                await OrderItem.create({
+                    order_id: order.id,
+                    item_id: item.item_id,
+                    quantity,
+                    price: unitPrice.toFixed(2),
+                    subtotal: lineSubtotal
+                }, { transaction });
 
-                await sequelize.query('UPDATE items SET stock = stock - ? WHERE id = ?', {
-                    replacements: [quantity, item.item_id],
-                    transaction
-                });
+                await Item.update(
+                    { stock: sequelize.literal(`stock - ${quantity}`) },
+                    { where: { id: item.item_id }, transaction }
+                );
 
                 receiptItems.push({
                     name: item.description || item.name || `Item ${item.item_id}`,
@@ -125,13 +131,13 @@ exports.createOrder = async (req, res) => {
 
             try {
                 await sendEmail({
-                    email: userRows[0].email,
+                    email: userRow.email,
                     subject: 'Order placed successfully',
                     message: `Your order ${orderNumber} is being processed.`,
                     attachment: {
                         filename: `${orderNumber}.pdf`,
                         content: buildReceiptPdf(orderNumber, {
-                            customer_name: `${userRows[0].first_name || ''} ${userRows[0].last_name || ''}`.trim(),
+                            customer_name: `${userRow.first_name || ''} ${userRow.last_name || ''}`.trim(),
                             order_status: 'Pending',
                             total_amount: totalAmount.toFixed(2)
                         }, receiptItems)
@@ -143,7 +149,7 @@ exports.createOrder = async (req, res) => {
 
             return res.status(201).json({
                 success: true,
-                order_id: orderId,
+                order_id: order.id,
                 order_number: orderNumber,
                 message: 'Order created successfully',
                 cart
@@ -160,10 +166,18 @@ exports.createOrder = async (req, res) => {
 
 exports.getAllOrders = async (req, res) => {
     try {
-        const [rows] = await sequelize.query(
-            'SELECT o.id, o.order_number, o.total_amount, o.payment_status, o.order_status, o.created_at, u.first_name, u.last_name, u.email FROM orders o LEFT JOIN users u ON o.user_id = u.id ORDER BY o.id DESC'
-        );
-        return res.status(200).json({ rows });
+        const orders = await Order.findAll({
+            include: [{ model: User, attributes: [] }],
+            attributes: [
+                'id', 'order_number', 'total_amount', 'payment_status', 'order_status', 'created_at',
+                [sequelize.col('User.first_name'), 'first_name'],
+                [sequelize.col('User.last_name'), 'last_name'],
+                [sequelize.col('User.email'), 'email']
+            ],
+            order: [['id', 'DESC']],
+            raw: true
+        });
+        return res.status(200).json({ rows: orders });
     } catch (error) {
         console.log(error);
         return res.status(500).json({ error: 'Error fetching orders', details: error.message });
@@ -172,21 +186,30 @@ exports.getAllOrders = async (req, res) => {
 
 exports.getSingleOrder = async (req, res) => {
     try {
-        const [orders] = await sequelize.query(
-            'SELECT o.id, o.order_number, o.total_amount, o.payment_status, o.order_status, o.shipping_address, o.created_at, u.first_name, u.last_name, u.email FROM orders o LEFT JOIN users u ON o.user_id = u.id WHERE o.id = ? LIMIT 1',
-            { replacements: [req.params.id] }
-        );
+        const order = await Order.findOne({
+            where: { id: req.params.id },
+            include: [{ model: User, attributes: [] }],
+            attributes: [
+                'id', 'order_number', 'total_amount', 'payment_status', 'order_status', 'shipping_address', 'created_at',
+                [sequelize.col('User.first_name'), 'first_name'],
+                [sequelize.col('User.last_name'), 'last_name'],
+                [sequelize.col('User.email'), 'email']
+            ],
+            raw: true
+        });
 
-        if (!orders.length) {
+        if (!order) {
             return res.status(404).json({ success: false, message: 'Order not found' });
         }
 
-        const [items] = await sequelize.query(
-            'SELECT oi.quantity, oi.price, oi.subtotal, i.name FROM order_items oi LEFT JOIN items i ON oi.item_id = i.id WHERE oi.order_id = ?',
-            { replacements: [req.params.id] }
-        );
+        const items = await OrderItem.findAll({
+            where: { order_id: req.params.id },
+            include: [{ model: Item, attributes: [] }],
+            attributes: ['quantity', 'price', 'subtotal', [sequelize.col('Item.name'), 'name']],
+            raw: true
+        });
 
-        return res.status(200).json({ success: true, result: { ...orders[0], items } });
+        return res.status(200).json({ success: true, result: { ...order, items } });
     } catch (error) {
         console.log(error);
         return res.status(500).json({ error: 'Error fetching order', details: error.message });
@@ -198,28 +221,47 @@ exports.updateOrder = async (req, res) => {
         const { id } = req.params;
         const { order_status, payment_status } = req.body;
 
-        const [orders] = await sequelize.query('SELECT o.id, o.order_number, o.total_amount, o.order_status, u.email, u.first_name, u.last_name FROM orders o LEFT JOIN users u ON o.user_id = u.id WHERE o.id = ? LIMIT 1', { replacements: [id] });
+        const order = await Order.findOne({
+            where: { id },
+            include: [{ model: User, attributes: [] }],
+            attributes: [
+                'id', 'order_number', 'total_amount', 'order_status',
+                [sequelize.col('User.email'), 'email'],
+                [sequelize.col('User.first_name'), 'first_name'],
+                [sequelize.col('User.last_name'), 'last_name']
+            ],
+            raw: true
+        });
 
-        if (!orders.length) {
+        if (!order) {
             return res.status(404).json({ error: 'Order not found' });
         }
 
-        await sequelize.query(
-            'UPDATE orders SET order_status = ?, payment_status = ? WHERE id = ?',
-            { replacements: [order_status || orders[0].order_status, payment_status || 'Pending', id] }
+        await Order.update(
+            { order_status: order_status || order.order_status, payment_status: payment_status || 'Pending' },
+            { where: { id } }
         );
 
+        // Fixed: previously always sent an empty items array on update emails.
+        // Now pulls the real order lines so the PDF receipt matches the order.
+        const items = await OrderItem.findAll({
+            where: { order_id: id },
+            include: [{ model: Item, attributes: [] }],
+            attributes: ['quantity', 'price', 'subtotal', [sequelize.col('Item.name'), 'name']],
+            raw: true
+        });
+
         await sendEmail({
-            email: orders[0].email,
+            email: order.email,
             subject: 'Order updated',
-            message: `Your order ${orders[0].order_number} has been updated to ${order_status || orders[0].order_status}.`,
+            message: `Your order ${order.order_number} has been updated to ${order_status || order.order_status}.`,
             attachment: {
-                filename: `${orders[0].order_number}.pdf`,
-                content: buildReceiptPdf(orders[0].order_number, {
-                    customer_name: `${orders[0].first_name || ''} ${orders[0].last_name || ''}`.trim(),
-                    order_status: order_status || orders[0].order_status,
-                    total_amount: orders[0].total_amount
-                }, [])
+                filename: `${order.order_number}.pdf`,
+                content: buildReceiptPdf(order.order_number, {
+                    customer_name: `${order.first_name || ''} ${order.last_name || ''}`.trim(),
+                    order_status: order_status || order.order_status,
+                    total_amount: order.total_amount
+                }, items)
             }
         });
 
@@ -233,8 +275,8 @@ exports.updateOrder = async (req, res) => {
 exports.deleteOrder = async (req, res) => {
     try {
         const { id } = req.params;
-        await sequelize.query('DELETE FROM order_items WHERE order_id = ?', { replacements: [id] });
-        await sequelize.query('DELETE FROM orders WHERE id = ?', { replacements: [id] });
+        await OrderItem.destroy({ where: { order_id: id } });
+        await Order.destroy({ where: { id } });
         return res.status(200).json({ success: true, message: 'Order deleted successfully' });
     } catch (error) {
         console.log(error);

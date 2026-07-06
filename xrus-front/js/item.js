@@ -111,10 +111,10 @@ $(document).ready(function () {
     const buyPrice = $('#itemBuyPrice').val();
     const sellPrice = $('#itemSellPrice').val();
 
-    if (!name || !buyPrice || !sellPrice) {
-        Swal.fire({ icon: 'warning', text: 'Name, Buy Price, and Sell Price are required' });
-        return;
-    }
+        if (!name || !buyPrice || !sellPrice || parseFloat(buyPrice) <= 0 || parseFloat(sellPrice) <= 0) {
+            Swal.fire({ icon: 'warning', text: 'Name, Buy Price, and Sell Price are required and must be greater than 0' });
+            return;
+        }
 
     const formData = new FormData($('#iform')[0]);
         $.ajax({
@@ -181,6 +181,15 @@ $(document).ready(function () {
         if (!token) return;
         const id = $('#itemId').val();
         const formData = new FormData($('#iform')[0]);
+
+        const name = $('#itemName').val().trim();
+        const buyPrice = $('#itemBuyPrice').val();
+        const sellPrice = $('#itemSellPrice').val();
+
+        if (!name || !buyPrice || !sellPrice || parseFloat(buyPrice) <= 0 || parseFloat(sellPrice) <= 0) {
+            Swal.fire({ icon: 'warning', text: 'Name, Buy Price, and Sell Price are required and must be greater than 0' });
+            return;
+        }
 
         $.ajax({
             method: 'PUT',

@@ -118,7 +118,7 @@ const loginUser = async (req, res) => {
 const updateUser = async (req, res) => {
     try {
         const userId = req.body.userId || req.body.user?.id || req.body.user_id;
-        const { fname, lname, addressline, phone } = req.body;
+        const { fname, lname, addressline, phone, town, zipcode } = req.body;
 
         if (!userId) {
             return res.status(400).json({ error: 'User ID is required' });
@@ -133,7 +133,9 @@ const updateUser = async (req, res) => {
             first_name: fname || null,
             last_name: lname || null,
             address: addressline || null,
-            phone: phone || null
+            phone: phone || null,
+            town: town || null,
+            zipcode: zipcode || null
         });
 
         return res.status(200).json({
@@ -297,10 +299,15 @@ const deleteUserByAdmin = async (req, res) => {
             return res.status(404).json({ error: 'User not found' });
         }
 
-        // orders/order_items have no model yet, so those two relations
-        // are still cleared with raw queries same as before.
-        await sequelize.query('DELETE FROM order_items WHERE order_id IN (SELECT id FROM orders WHERE user_id = ?)', { replacements: [id] });
-        await sequelize.query('DELETE FROM orders WHERE user_id = ?', { replacements: [id] });
+        // orders/order_items now have models (mp7), so this uses the ORM
+        // instead of raw queries like before.
+        const userOrders = await db.Order.findAll({ where: { user_id: id }, attributes: ['id'], raw: true });
+        const orderIds = userOrders.map((o) => o.id);
+
+        if (orderIds.length) {
+            await db.OrderItem.destroy({ where: { order_id: orderIds } });
+        }
+        await db.Order.destroy({ where: { user_id: id } });
         await user.destroy();
 
         return res.status(200).json({ success: true, message: 'User deleted successfully' });
@@ -332,7 +339,7 @@ const getProfile = async (req, res) => {
         const userId = req.user.id;
         const user = await User.findOne({
             where: { id: userId },
-            attributes: ['id', 'first_name', 'last_name', 'username', 'email', 'phone', 'address', 'role']
+            attributes: ['id', 'first_name', 'last_name', 'username', 'email', 'phone', 'address', 'town', 'zipcode', 'role']
         });
 
         if (!user) {

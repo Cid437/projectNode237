@@ -112,10 +112,15 @@ $(document).ready(function () {
         });
     });
 
-    $('#orderUpdateBtn').on('click', function () {
+$('#orderUpdateBtn').on('click', function () {
         const token = getToken();
         if (!token) return;
         const id = $('#orderId').val();
+
+        if (!id) {
+            Swal.fire({ icon: 'warning', text: 'No order selected' });
+            return;
+        }     
 
         $.ajax({
             method: 'PUT',

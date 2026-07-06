@@ -80,12 +80,14 @@ $(document).ready(function () {
         url: `${url}api/v1/profile`,
         dataType: 'json',
         headers: { Authorization: 'Bearer ' + token.replace(/^"|"$/g, '') },
-        success: function (data) {
+            success: function (data) {
             const user = data.user || {};
             $('#firstName').val(user.first_name || '');
             $('#lastName').val(user.last_name || '');
             $('#address').val(user.address || '');
             $('#phone').val(user.phone || '');
+            $('#town').val(user.town || '');
+            $('#zipcode').val(user.zipcode || '');
         },
         error: function (error) {
             console.log(error);

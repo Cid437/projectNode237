@@ -121,3 +121,49 @@ This document lists everything that was modified during the implementation and f
 - Improved CSS Design from classic bootsrap blue to gray
 
 14. mp4 and mp7 issue fixes
+- replace manual loadusers with datatables on front end users.js
+- match models with xrus_db tables
+
+- - - - - - - - - - - - - - -
+7/6/2026 - Follow-up gap fixes (requirements.txt audit)
+
+15. mp7 - Sequelize ORM coverage for Orders
+- Added Order and OrderItem Sequelize models (models/order.js, models/orderItem.js)
+- Registered Order/OrderItem in models/index.js with User/Item associations
+- Rewrote controllers/order.js (createOrder, getAllOrders, getSingleOrder, updateOrder, deleteOrder)
+  to use the ORM instead of raw sequelize.query, following the same include/attributes pattern
+  already used in controllers/item.js
+- Updated controllers/user.js deleteUserByAdmin to clean up a deleted user's orders via the
+  new Order/OrderItem models instead of raw queries
+
+16. Bug fix - order update email receipt
+- updateOrder previously always emailed a receipt PDF with an empty items list
+- Now fetches the real order_items for the order and includes them in the PDF, matching
+  what createOrder already did
+
+17. Removed dead/unused models
+- Deleted models/stock.js (referenced a `stock` table that was never created in xrus_db.sql)
+- Deleted models/customer.js (unused; users table already stores address/phone directly)
+
+18. Dashboard "Customers per Town" chart accuracy
+- Added town and zipcode columns to users table (xrus_db.sql migration)
+- Added town/zipcode fields to models/user.js
+- addressChart in controllers/dashboard.js now groups by town instead of the free-text
+  address column
+- updateUser/getProfile in controllers/user.js now read/write town and zipcode
+- profile.js now populates the town/zipcode fields on page load (fields were already being
+  submitted via FormData, just never round-tripped)
+
+19. quiz5 - autocomplete
+- home.html already loaded jQuery UI but never used it; wired up $('#homeSearch').autocomplete()
+  sourced from the already-fetched items list, alongside the existing live-filter behavior
+
+20. quiz4 - validation gaps
+- item.js: itemUpdate now has the same required-field + >0 price validation itemSubmit had
+- orders.js: orderUpdateBtn now guards against a missing order id
+- user.js / register.js: registration now checks for a minimum password length client-side
+
+21. Housekeeping
+- Added .env to xrus-back/.gitignore
+- Updated Checklist.txt to reflect that cart checkout and profile loading were already fixed,
+  and added Order CRUD to the Admin checklist

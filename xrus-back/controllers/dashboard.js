@@ -3,7 +3,7 @@ const sequelize = require('../config/database');
 exports.addressChart = async (req, res) => {
     try {
         const [rows] = await sequelize.query(
-            'SELECT address AS addressline, COUNT(*) AS total FROM users WHERE address IS NOT NULL AND address <> "" GROUP BY address ORDER BY total DESC, address ASC'
+            'SELECT town AS addressline, COUNT(*) AS total FROM users WHERE town IS NOT NULL AND town <> "" GROUP BY town ORDER BY total DESC, town ASC'
         );
 
         return res.status(200).json({ rows });

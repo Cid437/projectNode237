@@ -12,6 +12,16 @@ $(document).ready(function () {
             password,
             username: email.split('@')[0]
         }
+
+        if (!name || !email || !password) {
+            Swal.fire({ icon: 'warning', text: 'Name, email and password are required' });
+            return;
+        }
+        if (password.length < 6) {
+            Swal.fire({ icon: 'warning', text: 'Password must be at least 6 characters' });
+            return;
+        }
+
         $.ajax({
             method: "POST",
             url: `${url}api/v1/register`,

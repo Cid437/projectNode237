@@ -91,6 +91,9 @@ $(document).ready(function () {
             allItems = Array.isArray(data.rows) ? data.rows : [];
             renderInfiniteBatch(true);
 
+            // Item details modal + live search filtering are set up FIRST,
+            // before autocomplete, so they always work even if the
+            // autocomplete widget below fails to initialize for any reason.
             $('#homeSearch').on('input', function () {
                 const query = $(this).val().toLowerCase().trim();
                 if (!query) {
@@ -143,6 +146,24 @@ $(document).ready(function () {
                     <button type="button" class="btn btn-primary" id="detailsAddToCart">Add to Cart</button>
                 `);
                 $('#productDetailsModal').modal('show');
+            });
+
+            // Autocomplete is an addition on top of the live filter above,
+            // not a replacement for it — select() reuses the same 'input'
+            // handler by triggering it.
+            $('#homeSearch').autocomplete({
+                source: function (request, response) {
+                    const term = request.term.toLowerCase();
+                    const matches = allItems
+                        .filter(item => item.name.toLowerCase().includes(term))
+                        .map(item => item.name);
+                    response(matches.slice(0, 8));
+                },
+                minLength: 1,
+                select: function (event, ui) {
+                    $('#homeSearch').val(ui.item.value).trigger('input');
+                    return false;
+                }
             });
         },
         error: function (error) {
