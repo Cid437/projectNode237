@@ -94,7 +94,11 @@ const loginUser = async (req, res) => {
             return res.status(401).json({ success: false, message: 'Invalid email or password' });
         }
 
-        const token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET || 'xrus-secret');
+        const token = jwt.sign(
+            { id: user.id, role: user.role },
+            process.env.JWT_SECRET || 'xrus-secret',
+            { expiresIn: process.env.JWT_EXPIRES_IN || '1h' }
+        );
         await user.update({ token });
 
         return res.status(200).json({
@@ -129,18 +133,34 @@ const updateUser = async (req, res) => {
             return res.status(404).json({ error: 'User not found' });
         }
 
-        await user.update({
+        const updateData = {
             first_name: fname || null,
             last_name: lname || null,
             address: addressline || null,
             phone: phone || null,
             town: town || null,
             zipcode: zipcode || null
-        });
+        };
+
+        if (req.file) {
+            updateData.image_url = `/images/${req.file.filename}`;
+        }
+
+        await user.update(updateData);
 
         return res.status(200).json({
             success: true,
-            message: 'Profile updated successfully'
+            message: 'Profile updated successfully',
+            user: {
+                id: user.id,
+                first_name: updateData.first_name,
+                last_name: updateData.last_name,
+                address: updateData.address,
+                phone: updateData.phone,
+                town: updateData.town,
+                zipcode: updateData.zipcode,
+                image_url: updateData.image_url || user.image_url
+            }
         });
     } catch (error) {
         console.log(error);
@@ -339,7 +359,7 @@ const getProfile = async (req, res) => {
         const userId = req.user.id;
         const user = await User.findOne({
             where: { id: userId },
-            attributes: ['id', 'first_name', 'last_name', 'username', 'email', 'phone', 'address', 'town', 'zipcode', 'role']
+            attributes: ['id', 'first_name', 'last_name', 'username', 'email', 'phone', 'address', 'town', 'zipcode', 'role', 'image_url']
         });
 
         if (!user) {

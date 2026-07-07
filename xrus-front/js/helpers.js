@@ -40,16 +40,20 @@
         },
         applyHeaderState: function () {
             const role = this.getRole();
+            const token = this.getToken();
+            const userId = sessionStorage.getItem('userId');
+            const isLoggedIn = Boolean(token && userId);
+
             $('.admin-only').toggle(role === 'admin');
+            $('.auth-only').toggle(isLoggedIn);
+            $('.guest-only').toggle(!isLoggedIn);
 
             const loginLink = $('a.nav-link[href="login.html"]');
             if (!loginLink.length) {
                 return;
             }
 
-            const token = this.getToken();
-            const userId = sessionStorage.getItem('userId');
-            if (token && userId) {
+            if (isLoggedIn) {
                 loginLink.text('Logout').attr({ href: '#!', id: 'logout-link' }).off('click').on('click', function (e) {
                     e.preventDefault();
                     Swal.fire({

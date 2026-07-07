@@ -22,7 +22,10 @@
       <li class="nav-item admin-only" style="display:none">
         <a class="nav-link" href="orders.html">Orders</a>
       </li>
-      <li class="nav-item">
+      <li class="nav-item auth-only" style="display:none">
+        <a class="nav-link" href="purchases.html">My Purchases</a>
+      </li>
+      <li class="nav-item auth-only" style="display:none">
         <a class="nav-link" href="profile.html">Profile</a>
       </li>
       <li class="nav-item admin-only" style="display:none">
@@ -34,7 +37,7 @@
       <li class="nav-item admin-only" style="display:none">
         <a class="nav-link" href="users.html">Users</a>
       </li>
-      <li class="nav-item">
+      <li class="nav-item guest-only">
         <a class="nav-link" href="register.html">Register</a>
       </li>
       <li class="nav-item" id="log">
@@ -45,16 +48,26 @@
 </nav>
 <script>
   (function applyHeaderState() {
-    const role = sessionStorage.getItem('role') || 'customer';
+    const role = (sessionStorage.getItem('role') || 'customer').toLowerCase();
+    const token = sessionStorage.getItem('token');
+    const userId = sessionStorage.getItem('userId');
+    const isLoggedIn = Boolean(token && userId);
+
     document.querySelectorAll('.admin-only').forEach(function (el) {
       el.style.display = role === 'admin' ? '' : 'none';
     });
 
+    document.querySelectorAll('.auth-only').forEach(function (el) {
+      el.style.display = isLoggedIn ? '' : 'none';
+    });
+
+    document.querySelectorAll('.guest-only').forEach(function (el) {
+      el.style.display = isLoggedIn ? 'none' : '';
+    });
+
     const loginLink = document.querySelector('a.nav-link[href="login.html"]');
     if (loginLink) {
-      const token = sessionStorage.getItem('token');
-      const userId = sessionStorage.getItem('userId');
-      if (token && userId) {
+      if (isLoggedIn) {
         loginLink.textContent = 'Logout';
         loginLink.href = '#!';
         loginLink.onclick = function (e) {

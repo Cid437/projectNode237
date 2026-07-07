@@ -131,6 +131,7 @@ CREATE TABLE `users` (
   `password` varchar(255) NOT NULL,
   `phone` varchar(30) DEFAULT NULL,
   `address` text DEFAULT NULL,
+  `image_url` varchar(255) DEFAULT NULL,
   `role` enum('customer','admin') NOT NULL DEFAULT 'customer',
   `status` enum('active','inactive') NOT NULL DEFAULT 'active',
   `token` varchar(255) DEFAULT NULL,

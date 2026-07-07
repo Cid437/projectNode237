@@ -47,6 +47,10 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.STRING(10),
             allowNull: true
         },
+        image_url: {
+            type: DataTypes.STRING(255),
+            allowNull: true
+        },
         role: {
             type: DataTypes.ENUM('customer', 'admin'),
             allowNull: false,

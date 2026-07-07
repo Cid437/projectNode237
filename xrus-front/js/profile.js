@@ -39,6 +39,10 @@ $(document).ready(function () {
             },
             success: function (data) {
                 console.log(data);
+                if (data.user && data.user.image_url) {
+                    const imageUrl = data.user.image_url.startsWith('http') ? data.user.image_url : `${url}${data.user.image_url}`;
+                    $('#avatarPreview').attr('src', imageUrl).show();
+                }
                 Swal.fire({
                     icon: 'success',
                     text: data.message || 'Profile updated',
@@ -90,6 +94,13 @@ $(document).ready(function () {
             $('#phone').val(user.phone || '');
             $('#town').val(user.town || '');
             $('#zipcode').val(user.zipcode || '');
+
+            if (user.image_url) {
+                const imageUrl = user.image_url.startsWith('http') ? user.image_url : `${url}${user.image_url}`;
+                $('#avatarPreview').attr('src', imageUrl).show();
+            } else {
+                $('#avatarPreview').hide();
+            }
         },
         error: function (error) {
             console.log(error);

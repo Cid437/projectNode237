@@ -12,6 +12,12 @@ const dashboard = require('./routes/dashboard');
 app.use(cors());
 app.use(express.json());
 
+// Simple request logger for debugging email/test endpoints
+app.use((req, res, next) => {
+    console.log('REQ', req.method, req.originalUrl);
+    next();
+});
+
 const imagesDir = path.join(__dirname, 'images');
 fs.mkdirSync(imagesDir, { recursive: true });
 

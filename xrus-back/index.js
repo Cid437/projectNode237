@@ -9,6 +9,12 @@ sequelize.authenticate()
     .then(() => {
         console.log('Database connected');
 
+        return sequelize.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS image_url VARCHAR(255) NULL")
+            .catch((err) => {
+                console.log('Image column check skipped or failed:', err.message);
+            });
+    })
+    .then(() => {
         // Start server ONLY after DB is ready
         app.listen(PORT, () => {
             console.log(`Server running on port ${PORT}`);
