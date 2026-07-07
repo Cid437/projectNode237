@@ -5,6 +5,9 @@ const PDFDocument = require('pdfkit');
 const jwt = require('jsonwebtoken');
 const { Order, OrderItem, Item, User } = db;
 
+const SUBTOTAL_SQL = '(SELECT COALESCE(SUM(oi.subtotal),0) FROM order_items oi WHERE oi.order_id = `Order`.`id`)';
+const TOTAL_AMOUNT_SQL = `${SUBTOTAL_SQL} + \`Order\`.\`shipping_fee\` - \`Order\`.\`discount\``;
+
 const formatMoney = (value) => `PHP ${Number(value || 0).toFixed(2)}`;
 
 // Generates a real PDF receipt (previously this was plain text wrapped in a
@@ -198,6 +201,9 @@ exports.createOrder = async (req, res) => {
                 return res.status(404).json({ error: 'User not found' });
             }
 
+            // subtotal is still computed here for the receipt email/PDF, it
+            // just isn't persisted on the orders row anymore (derived from
+            // order_items on every read instead — see SUBTOTAL_SQL above).
             const subtotal = cart.reduce((sum, item) => sum + (parseFloat(item.price || 0) * parseInt(item.quantity || 0, 10)), 0);
             const totalAmount = subtotal + parseFloat(shipping_fee || 0) - parseFloat(discount || 0);
             const orderNumber = `ORD-${Date.now()}`;
@@ -205,7 +211,6 @@ exports.createOrder = async (req, res) => {
             const order = await Order.create({
                 user_id: userId,
                 order_number: orderNumber,
-                subtotal: subtotal.toFixed(2),
                 shipping_fee,
                 discount,
                 payment_method,
@@ -306,7 +311,7 @@ exports.getAllOrders = async (req, res) => {
                 'payment_status',
                 'order_status',
                 'created_at',
-                [sequelize.literal('subtotal + shipping_fee - discount'), 'total_amount'],
+                [sequelize.literal(TOTAL_AMOUNT_SQL), 'total_amount'],
                 [sequelize.col('User.first_name'), 'first_name'],
                 [sequelize.col('User.last_name'), 'last_name'],
                 [sequelize.col('User.email'), 'email']
@@ -341,7 +346,7 @@ exports.getMyOrders = async (req, res) => {
                 'payment_status',
                 'order_status',
                 'created_at',
-                [sequelize.literal('subtotal + shipping_fee - discount'), 'total_amount']
+                [sequelize.literal(TOTAL_AMOUNT_SQL), 'total_amount']
             ],
             order: [['id', 'DESC']],
             raw: true
@@ -369,7 +374,7 @@ exports.getSingleOrder = async (req, res) => {
                 'order_status',
                 'shipping_address',
                 'created_at',
-                [sequelize.literal('subtotal + shipping_fee - discount'), 'total_amount'],
+                [sequelize.literal(TOTAL_AMOUNT_SQL), 'total_amount'],
                 [sequelize.col('User.first_name'), 'first_name'],
                 [sequelize.col('User.last_name'), 'last_name'],
                 [sequelize.col('User.email'), 'email']
@@ -424,7 +429,7 @@ exports.getOrderReceipt = async (req, res) => {
                 'order_number',
                 'order_status',
                 'created_at',
-                [sequelize.literal('subtotal + shipping_fee - discount'), 'total_amount']
+                [sequelize.literal(TOTAL_AMOUNT_SQL), 'total_amount']
             ],
             raw: true
         });
@@ -510,7 +515,7 @@ exports.getReceiptByToken = async (req, res) => {
                 'order_number',
                 'order_status',
                 'created_at',
-                [sequelize.literal('subtotal + shipping_fee - discount'), 'total_amount']
+                [sequelize.literal(TOTAL_AMOUNT_SQL), 'total_amount']
             ],
             raw: true
         });
@@ -592,10 +597,10 @@ exports.updateOrder = async (req, res) => {
                 'order_status',
                 'payment_method',
                 'shipping_address',
-                'subtotal',
+                [sequelize.literal(SUBTOTAL_SQL), 'subtotal'],
                 'shipping_fee',
                 'discount',
-                [sequelize.literal('subtotal + shipping_fee - discount'), 'total_amount'],
+                [sequelize.literal(TOTAL_AMOUNT_SQL), 'total_amount'],
                 [sequelize.col('User.email'), 'email'],
                 [sequelize.col('User.first_name'), 'first_name'],
                 [sequelize.col('User.last_name'), 'last_name']
@@ -733,13 +738,13 @@ exports.createTestEmail = async (req, res) => {
                     'id',
                     'order_number',
                     'order_status',
-                    'subtotal',
+                    [sequelize.literal(SUBTOTAL_SQL), 'subtotal'],
                     'shipping_fee',
                     'discount',
                     'payment_method',
                     'shipping_address',
                     'created_at',
-                    [sequelize.literal('subtotal + shipping_fee - discount'), 'total_amount'],
+                    [sequelize.literal(TOTAL_AMOUNT_SQL), 'total_amount'],
                     [sequelize.col('User.first_name'), 'first_name'],
                     [sequelize.col('User.last_name'), 'last_name']
                 ],

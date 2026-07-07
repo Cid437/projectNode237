@@ -18,11 +18,6 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false,
             unique: true
         },
-        subtotal: {
-            type: DataTypes.DECIMAL(10, 2),
-            allowNull: false,
-            defaultValue: 0
-        },
         shipping_fee: {
             type: DataTypes.DECIMAL(10, 2),
             allowNull: false,
@@ -32,15 +27,6 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.DECIMAL(10, 2),
             allowNull: false,
             defaultValue: 0
-        },
-        total_amount: {
-            type: DataTypes.VIRTUAL,
-            get() {
-                const subtotal = parseFloat(this.getDataValue('subtotal') || 0);
-                const shippingFee = parseFloat(this.getDataValue('shipping_fee') || 0);
-                const discount = parseFloat(this.getDataValue('discount') || 0);
-                return (subtotal + shippingFee - discount).toFixed(2);
-            }
         },
         payment_method: {
             type: DataTypes.ENUM('Cash', 'GCash', 'Card'),
