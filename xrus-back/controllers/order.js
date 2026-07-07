@@ -1,23 +1,115 @@
 const sequelize = require('../config/database');
 const sendEmail = require('../utils/sendEmail');
 const db = require('../models');
+const PDFDocument = require('pdfkit');
 const { Order, OrderItem, Item, User } = db;
 
+// Generates a real PDF receipt (previously this was plain text wrapped in a
+// Buffer and saved as .pdf, so it failed to open in any PDF viewer).
+// pdfkit streams pages, so we collect the chunks and resolve a Buffer once
+// the document is done writing.
 const buildReceiptPdf = (orderNumber, order, items) => {
-    const lines = [
-        `Receipt for ${orderNumber}`,
-        `Customer: ${order.customer_name}`,
-        `Status: ${order.order_status}`,
-        `Total: ${order.total_amount}`,
-        '',
-        'Items:'
-    ];
+    return new Promise((resolve, reject) => {
+        try {
+            const doc = new PDFDocument({ size: 'A4', margin: 50 });
+            const chunks = [];
 
-    items.forEach((item) => {
-        lines.push(`${item.name} x ${item.quantity} = ${item.subtotal}`);
+            doc.on('data', (chunk) => chunks.push(chunk));
+            doc.on('end', () => resolve(Buffer.concat(chunks)));
+            doc.on('error', reject);
+
+            // ---- Header ----
+            doc.fontSize(20).fillColor('#212529').text('Xrus Shop', { align: 'left' });
+            doc.fontSize(10).fillColor('#868e96').text('Official Order Receipt', { align: 'left' });
+            doc.moveDown(1.5);
+
+            // ---- Order info ----
+            doc.fontSize(11).fillColor('#212529');
+            doc.text(`Order Number: ${orderNumber}`);
+            doc.text(`Customer: ${order.customer_name}`);
+            doc.text(`Status: ${order.order_status}`);
+            doc.text(`Date: ${new Date().toLocaleString()}`);
+            doc.moveDown(1);
+
+            // ---- Items table ----
+            const left = 50;
+            const width = 500;
+            const col = { item: left + 5, qty: left + 300, subtotal: left + 380 };
+
+            let y = doc.y;
+            doc.rect(left, y, width, 22).fill('#495057');
+            doc.fillColor('#ffffff').fontSize(10);
+            doc.text('Item', col.item, y + 6);
+            doc.text('Qty', col.qty, y + 6);
+            doc.text('Subtotal', col.subtotal, y + 6);
+            y += 22;
+
+            doc.fontSize(10);
+            items.forEach((item, idx) => {
+                if (idx % 2 === 0) {
+                    doc.rect(left, y, width, 20).fill('#f1f3f5');
+                }
+                doc.fillColor('#212529');
+                doc.text(item.name || '', col.item, y + 5, { width: 280 });
+                doc.text(String(item.quantity), col.qty, y + 5);
+                // Using "PHP" instead of the peso sign since the default
+                // PDF fonts pdfkit ships with don't include that glyph.
+                doc.text(`PHP ${Number(item.subtotal || 0).toFixed(2)}`, col.subtotal, y + 5);
+                y += 20;
+            });
+
+            doc.moveDown(2);
+            doc.fontSize(13).fillColor('#212529')
+                .text(`Total: PHP ${Number(order.total_amount || 0).toFixed(2)}`, { align: 'right' });
+
+            doc.moveDown(2);
+            doc.fontSize(9).fillColor('#868e96')
+                .text('Thank you for shopping with Xrus Shop!', { align: 'center' });
+
+            doc.end();
+        } catch (error) {
+            reject(error);
+        }
     });
+};
 
-    return Buffer.from(lines.join('\n'));
+// Small HTML email body to go with the PDF attachment, matching the same
+// gray palette used across the frontend (css/style.css --gray-* vars).
+const buildReceiptEmailHtml = (heading, order, items) => {
+    const rows = items.map((item) => `
+        <tr>
+            <td style="padding:8px;border-bottom:1px solid #e9ecef;">${item.name || ''}</td>
+            <td style="padding:8px;border-bottom:1px solid #e9ecef;text-align:center;">${item.quantity}</td>
+            <td style="padding:8px;border-bottom:1px solid #e9ecef;text-align:right;">PHP ${Number(item.subtotal || 0).toFixed(2)}</td>
+        </tr>
+    `).join('');
+
+    return `
+        <div style="font-family:Arial,sans-serif;max-width:500px;margin:auto;">
+            <div style="background:#343a40;color:#fff;padding:16px;border-radius:6px 6px 0 0;">
+                <h2 style="margin:0;">Xrus Shop</h2>
+                <p style="margin:4px 0 0;color:#dee2e6;">${heading}</p>
+            </div>
+            <div style="border:1px solid #e9ecef;border-top:none;padding:16px;border-radius:0 0 6px 6px;">
+                <p style="margin:0 0 4px;"><strong>Order Number:</strong> ${order.order_number}</p>
+                <p style="margin:0 0 4px;"><strong>Status:</strong> ${order.order_status}</p>
+                <p style="margin:0 0 12px;"><strong>Total:</strong> PHP ${Number(order.total_amount || 0).toFixed(2)}</p>
+                <table style="width:100%;border-collapse:collapse;font-size:14px;">
+                    <thead>
+                        <tr style="background:#f1f3f5;">
+                            <th style="padding:8px;text-align:left;">Item</th>
+                            <th style="padding:8px;text-align:center;">Qty</th>
+                            <th style="padding:8px;text-align:right;">Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                </table>
+                <p style="margin-top:16px;color:#868e96;font-size:12px;">
+                    Your receipt is attached as a PDF. Thank you for shopping with us!
+                </p>
+            </div>
+        </div>
+    `;
 };
 
 exports.createOrder = async (req, res) => {
@@ -130,17 +222,21 @@ exports.createOrder = async (req, res) => {
             await transaction.commit();
 
             try {
+                const receiptOrder = {
+                    order_number: orderNumber,
+                    order_status: 'Pending',
+                    total_amount: totalAmount.toFixed(2),
+                    customer_name: `${userRow.first_name || ''} ${userRow.last_name || ''}`.trim()
+                };
+
                 await sendEmail({
                     email: userRow.email,
                     subject: 'Order placed successfully',
                     message: `Your order ${orderNumber} is being processed.`,
+                    html: buildReceiptEmailHtml('Order placed successfully', receiptOrder, receiptItems),
                     attachment: {
                         filename: `${orderNumber}.pdf`,
-                        content: buildReceiptPdf(orderNumber, {
-                            customer_name: `${userRow.first_name || ''} ${userRow.last_name || ''}`.trim(),
-                            order_status: 'Pending',
-                            total_amount: totalAmount.toFixed(2)
-                        }, receiptItems)
+                        content: await buildReceiptPdf(orderNumber, receiptOrder, receiptItems)
                     }
                 });
             } catch (emailError) {
@@ -181,6 +277,27 @@ exports.getAllOrders = async (req, res) => {
     } catch (error) {
         console.log(error);
         return res.status(500).json({ error: 'Error fetching orders', details: error.message });
+    }
+};
+
+// Customer-facing: only that user's own orders, so it's scoped to
+// req.user.id instead of taking an id from the request (no admin check,
+// any logged-in user can see their own order history/status).
+exports.getMyOrders = async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        const orders = await Order.findAll({
+            where: { user_id: userId },
+            attributes: ['id', 'order_number', 'payment_method', 'total_amount', 'payment_status', 'order_status', 'created_at'],
+            order: [['id', 'DESC']],
+            raw: true
+        });
+
+        return res.status(200).json({ rows: orders });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({ error: 'Error fetching your orders', details: error.message });
     }
 };
 
@@ -237,31 +354,51 @@ exports.updateOrder = async (req, res) => {
             return res.status(404).json({ error: 'Order not found' });
         }
 
+        const previousStatus = order.order_status;
+        const nextStatus = order_status || previousStatus;
+
         await Order.update(
-            { order_status: order_status || order.order_status, payment_status: payment_status || 'Pending' },
+            { order_status: nextStatus, payment_status: payment_status || 'Pending' },
             { where: { id } }
         );
 
-        // Fixed: previously always sent an empty items array on update emails.
-        // Now pulls the real order lines so the PDF receipt matches the order.
+        // item_id is included now (in addition to the existing fields) so it
+        // can be used both for the receipt PDF/email and for restocking below.
         const items = await OrderItem.findAll({
             where: { order_id: id },
             include: [{ model: Item, attributes: [] }],
-            attributes: ['quantity', 'price', 'subtotal', [sequelize.col('Item.name'), 'name']],
+            attributes: ['item_id', 'quantity', 'price', 'subtotal', [sequelize.col('Item.name'), 'name']],
             raw: true
         });
+
+        // Cancelling an order (whether via the row "Cancel" action or by
+        // picking "Cancelled" in the status dropdown) returns the ordered
+        // quantities back to stock. Guarded by previousStatus so an order
+        // that's already cancelled doesn't get restocked twice.
+        if (nextStatus === 'Cancelled' && previousStatus !== 'Cancelled') {
+            for (const item of items) {
+                await Item.update(
+                    { stock: sequelize.literal(`stock + ${item.quantity}`) },
+                    { where: { id: item.item_id } }
+                );
+            }
+        }
+
+        const receiptOrder = {
+            order_number: order.order_number,
+            order_status: nextStatus,
+            total_amount: order.total_amount,
+            customer_name: `${order.first_name || ''} ${order.last_name || ''}`.trim()
+        };
 
         await sendEmail({
             email: order.email,
             subject: 'Order updated',
-            message: `Your order ${order.order_number} has been updated to ${order_status || order.order_status}.`,
+            message: `Your order ${order.order_number} has been updated to ${nextStatus}.`,
+            html: buildReceiptEmailHtml('Your order has been updated', receiptOrder, items),
             attachment: {
                 filename: `${order.order_number}.pdf`,
-                content: buildReceiptPdf(order.order_number, {
-                    customer_name: `${order.first_name || ''} ${order.last_name || ''}`.trim(),
-                    order_status: order_status || order.order_status,
-                    total_amount: order.total_amount
-                }, items)
+                content: await buildReceiptPdf(order.order_number, receiptOrder, items)
             }
         });
 
@@ -269,17 +406,5 @@ exports.updateOrder = async (req, res) => {
     } catch (error) {
         console.log(error);
         return res.status(500).json({ error: 'Error updating order', details: error.message });
-    }
-};
-
-exports.deleteOrder = async (req, res) => {
-    try {
-        const { id } = req.params;
-        await OrderItem.destroy({ where: { order_id: id } });
-        await Order.destroy({ where: { id } });
-        return res.status(200).json({ success: true, message: 'Order deleted successfully' });
-    } catch (error) {
-        console.log(error);
-        return res.status(500).json({ error: 'Error deleting order', details: error.message });
     }
 };

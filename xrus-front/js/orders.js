@@ -59,10 +59,16 @@ $(document).ready(function () {
             {
                 data: 'id',
                 orderable: false,
-                render: function (id) {
+                render: function (id, type, row) {
+                    // Cancelled orders have already been restocked and
+                    // resolved, so there's nothing left to cancel again.
+                    const cancelIcon = row.order_status === 'Cancelled'
+                        ? ''
+                        : `<a href='#' class='cancelOrderBtn' data-id='${id}'><i class='fas fa-ban' style='font-size:22px; color:red'></i></a>`;
+
                     return `
                         <a href='#' class='viewBtn' data-id='${id}'><i class='fas fa-eye' style='font-size:22px'></i></a>
-                        <a href='#' class='deleteOrderBtn' data-id='${id}'><i class='fas fa-trash-alt' style='font-size:22px; color:red'></i></a>
+                        ${cancelIcon}
                     `;
                 }
             }
@@ -143,28 +149,35 @@ $('#orderUpdateBtn').on('click', function () {
         });
     });
 
-    $('#otable tbody').on('click', 'a.deleteOrderBtn', function (e) {
+    // Replaces the old hard-delete action: cancelling sets order_status to
+    // 'Cancelled' (via the same PUT endpoint the modal's Update button uses)
+    // instead of removing the order row, and the backend returns the
+    // ordered quantities back to stock.
+    $('#otable tbody').on('click', 'a.cancelOrderBtn', function (e) {
         e.preventDefault();
         const id = $(this).data('id');
         const token = getToken();
         if (!token) return;
 
         bootbox.confirm({
-            message: 'Delete this order?',
-            buttons: { confirm: { label: 'Yes', className: 'btn-success' }, cancel: { label: 'No', className: 'btn-danger' } },
+            message: 'Cancel this order? The ordered items will be returned to stock.',
+            buttons: { confirm: { label: 'Yes, cancel order', className: 'btn-success' }, cancel: { label: 'No', className: 'btn-danger' } },
             callback: function (result) {
                 if (!result) return;
                 $.ajax({
-                    method: 'DELETE',
+                    method: 'PUT',
                     url: `${url}/api/v1/orders/${id}`,
                     dataType: 'json',
+                    contentType: 'application/json; charset=utf-8',
+                    data: JSON.stringify({ order_status: 'Cancelled' }),
                     headers: { Authorization: `Bearer ${token}` },
                     success: function () {
                         reloadOrders();
-                        bootbox.alert('Order deleted successfully');
+                        bootbox.alert('Order cancelled successfully');
                     },
                     error: function (error) {
                         console.log(error);
+                        Swal.fire({ icon: 'error', text: error.responseJSON?.error || 'Unable to cancel order' });
                     }
                 });
             }

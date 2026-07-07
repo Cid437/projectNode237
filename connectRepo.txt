@@ -4,3 +4,10 @@
 - git remote add origin https://github.com/Cid437/projectNode237.git
 - git fetch origin
 - git switch split
+
+- - - - - - - - - - - - - -
+// Backend installations used
+
+- npm install express
+- npm install dotenv
+- npm install pdfkit

@@ -18,12 +18,14 @@ $(document).ready(function () {
 
         token = token.replace(/^"|"$/g, '');
 
+        // FormData($('#profileForm')[0]) already picks up every named field
+        // (fname, lname, addressline, phone, town, zipcode, image) straight
+        // from the form. Re-appending fname/lname/addressline/phone here
+        // duplicated those keys, which made multer parse them back as
+        // arrays instead of strings and broke the update on the backend.
+        // Only userId needs to be added since it isn't a form field.
         let formData = new FormData($('#profileForm')[0]);
         formData.append('userId', userId)
-        formData.append('fname', $('#firstName').val())
-        formData.append('lname', $('#lastName').val())
-        formData.append('addressline', $('#address').val())
-        formData.append('phone', $('#phone').val())
 
         $.ajax({
             method: 'POST',
