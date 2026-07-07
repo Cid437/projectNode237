@@ -1,6 +1,17 @@
 $(document).ready(function () {
     const url = 'http://localhost:4000/'
 
+    $('#avatar').on('change', function () {
+        const file = this.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                $('#avatarPreview').attr('src', e.target.result).show();
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
     $('#profileForm').on('submit', function (event) {
         event.preventDefault();
 

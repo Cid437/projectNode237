@@ -75,7 +75,7 @@ $(document).ready(function () {
 
         $.ajax({
             method: 'GET',
-            url: `${url}/api/v1/my-orders`,
+            url: `${url}/api/v1/orders/me`,
             dataType: 'json',
             headers: { Authorization: 'Bearer ' + token },
             success: function (data) {

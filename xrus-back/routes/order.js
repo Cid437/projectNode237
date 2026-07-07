@@ -1,13 +1,14 @@
 const express = require('express');
 const router = express.Router();
 
-const { createOrder, getAllOrders, getSingleOrder, getMyOrders, getOrderReceipt, getReceiptByToken, createReceiptToken, createTestEmail, updateOrder } = require('../controllers/order');
+const { createOrder, getAllOrders, getSingleOrder, getMyOrders, getOrderReceipt, getReceiptByToken, createReceiptToken, createTestEmail, updateOrder, cancelMyOrder } = require('../controllers/order');
 const { isAuthenticatedUser } = require('../middlewares/auth');
 const { isAdminUser } = require('../middlewares/admin');
 
 router.post('/create-order', isAuthenticatedUser, createOrder);
 router.get('/orders', isAuthenticatedUser, isAdminUser, getAllOrders);
 router.get('/orders/me', isAuthenticatedUser, getMyOrders);
+router.put('/orders/:id/cancel', isAuthenticatedUser, cancelMyOrder);
 router.get('/orders/receipt/:token', getReceiptByToken);
 router.post('/orders/:id/token', isAuthenticatedUser, createReceiptToken);
 router.get('/orders/:id/token', isAuthenticatedUser, createReceiptToken);

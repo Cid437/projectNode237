@@ -16,7 +16,9 @@ exports.addressChart = async (req, res) => {
 exports.salesChart = async (req, res) => {
     try {
         const [rows] = await sequelize.query(
-            "SELECT DATE_FORMAT(created_at, '%M') AS month, SUM(total_amount) AS total FROM orders GROUP BY MONTH(created_at), DATE_FORMAT(created_at, '%M') ORDER BY created_at"
+            "SELECT DATE_FORMAT(created_at, '%M') AS month, SUM(subtotal + shipping_fee - discount) AS total " +
+            "FROM orders WHERE payment_status = 'Paid' OR order_status = 'Completed' " +
+            "GROUP BY MONTH(created_at), DATE_FORMAT(created_at, '%M') ORDER BY created_at"
         );
 
         return res.status(200).json({ rows });

@@ -34,9 +34,13 @@ module.exports = (sequelize, DataTypes) => {
             defaultValue: 0
         },
         total_amount: {
-            type: DataTypes.DECIMAL(10, 2),
-            allowNull: false,
-            defaultValue: 0
+            type: DataTypes.VIRTUAL,
+            get() {
+                const subtotal = parseFloat(this.getDataValue('subtotal') || 0);
+                const shippingFee = parseFloat(this.getDataValue('shipping_fee') || 0);
+                const discount = parseFloat(this.getDataValue('discount') || 0);
+                return (subtotal + shippingFee - discount).toFixed(2);
+            }
         },
         payment_method: {
             type: DataTypes.ENUM('Cash', 'GCash', 'Card'),

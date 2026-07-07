@@ -283,7 +283,7 @@ const getAllUsers = async (req, res) => {
 const updateUserByAdmin = async (req, res) => {
     try {
         const { id } = req.params;
-        const { first_name, last_name, username, email, role, status } = req.body;
+        const { first_name, last_name, username, email, role, status, password } = req.body;
 
         const user = await User.findByPk(id);
         if (!user) {
@@ -294,14 +294,22 @@ const updateUserByAdmin = async (req, res) => {
         const nextEmail = email || user.email;
         const safeUsername = nextUsername === user.username ? nextUsername : await ensureUniqueUsername(nextUsername);
 
-        await user.update({
+        const updateData = {
             first_name: first_name || '',
             last_name: last_name || '',
             username: safeUsername,
             email: nextEmail,
             role: role || 'customer',
             status: status || 'active'
-        });
+        };
+
+        // Only touch the password when the admin actually typed a new one -
+        // leaving the field blank keeps the user's current password.
+        if (password && password.trim()) {
+            updateData.password = await bcrypt.hash(password, 10);
+        }
+
+        await user.update(updateData);
 
         return res.status(200).json({ success: true, message: 'User updated successfully' });
     } catch (error) {

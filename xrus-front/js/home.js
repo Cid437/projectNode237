@@ -141,9 +141,14 @@ $(document).ready(function () {
                     <p>${description || 'No description available.'}</p>
                     <p id="price">Price: ₱<strong>${price}</strong></p>
                     <p>Stock: ${stock}</p>
-                    <input type="number" class="form-control mb-3" id="detailsQty" min="1" max="${stock}" value="1">
                     <input type="hidden" id="detailsItemId" value="${id}">
-                    <button type="button" class="btn btn-primary" id="detailsAddToCart">Add to Cart</button>
+                    ${stock > 0 ? `
+                        <input type="number" class="form-control mb-3" id="detailsQty" min="1" max="${stock}" value="1">
+                        <button type="button" class="btn btn-primary" id="detailsAddToCart">Add to Cart</button>
+                    ` : `
+                        <p class="text-danger"><strong>Out of stock</strong></p>
+                        <button type="button" class="btn btn-secondary" disabled>Add to Cart</button>
+                    `}
                 `);
                 $('#productDetailsModal').modal('show');
             });
@@ -173,16 +178,30 @@ $(document).ready(function () {
 
     $(document).off('click', '#detailsAddToCart').on('click', '#detailsAddToCart', function (e) {
         e.preventDefault();
+        const stock = parseInt($('#productDetailsModalBody p:contains("Stock")').text().replace(/[^\d]/g, ''), 10) || 0;
+        if (stock <= 0) {
+            Swal.fire({ icon: 'warning', text: 'This item is out of stock', timer: 1200, showConfirmButton: false });
+            return;
+        }
         const qty = parseInt($('#detailsQty').val(), 10) || 1;
         const id = parseInt($('#detailsItemId').val(), 10);
         const description = $('#productDetailsModalLabel').text();
         const price = $('#productDetailsModalBody strong').text().replace(/[^\d.]/g, '');
         const image = $('#productDetailsModalBody img').attr('src');
-        const stock = parseInt($('#productDetailsModalBody p:contains("Stock")').text().replace(/[^\d]/g, ''), 10) || 0;
         let cart = getCart();
 
         let existing = cart.find(item => item.item_id == id);
         if (existing) {
+            if (existing.quantity + qty > stock) {
+                Swal.fire({
+                    icon: 'warning',
+                    text: 'Cannot add more than available stock',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+                return;
+            }
+
             existing.quantity += qty;
         } else {
             cart.push({ item_id: id, description, price: parseFloat(price), image, stock, quantity: qty });

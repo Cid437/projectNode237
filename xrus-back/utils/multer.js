@@ -1,10 +1,13 @@
 const multer = require("multer");
 const path = require("path");
+const fs = require("fs");
 
+const imagesDir = path.join(__dirname, '..', 'images');
+fs.mkdirSync(imagesDir, { recursive: true });
 
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, 'images');
+        cb(null, imagesDir);
     },
     filename: function (req, file, cb) {
 
@@ -12,7 +15,6 @@ const storage = multer.diskStorage({
         const ext = path.extname(file.originalname).toLowerCase();
         let baseName = path.parse(file.originalname).name.replace(/\\/g, '/');
         cb(null, baseName + '-' + uniqueSuffix + ext);
-        // cb(null, path.parse(file.originalname).name + '-' + uniqueSuffix + ext);
     }
 });
 

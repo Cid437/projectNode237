@@ -133,6 +133,7 @@ $(document).ready(function () {
     $('#userLastName').val($(this).data('last-name'));
     $('#userUsername').val($(this).data('username'));
     $('#userEmail').val($(this).data('email'));
+    $('#userPassword').val('');
     $('#userRole').val($(this).data('role'));
     $('#userStatus').val($(this).data('status'));
     $('#saveUserBtn').hide();
@@ -153,6 +154,11 @@ $(document).ready(function () {
       role: $('#userRole').val(),
       status: $('#userStatus').val()
     };
+
+    const newPassword = $('#userPassword').val();
+    if (newPassword) {
+      payload.password = newPassword;
+    }
 
     if (!id || !payload.email) {
       Swal.fire({ icon: 'warning', text: 'Email is required' });

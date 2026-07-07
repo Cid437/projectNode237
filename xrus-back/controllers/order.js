@@ -208,7 +208,6 @@ exports.createOrder = async (req, res) => {
                 subtotal: subtotal.toFixed(2),
                 shipping_fee,
                 discount,
-                total_amount: totalAmount.toFixed(2),
                 payment_method,
                 payment_status: 'Pending',
                 order_status: 'Pending',
@@ -302,7 +301,12 @@ exports.getAllOrders = async (req, res) => {
         const orders = await Order.findAll({
             include: [{ model: User, attributes: [] }],
             attributes: [
-                'id', 'order_number', 'total_amount', 'payment_status', 'order_status', 'created_at',
+                'id',
+                'order_number',
+                'payment_status',
+                'order_status',
+                'created_at',
+                [sequelize.literal('subtotal + shipping_fee - discount'), 'total_amount'],
                 [sequelize.col('User.first_name'), 'first_name'],
                 [sequelize.col('User.last_name'), 'last_name'],
                 [sequelize.col('User.email'), 'email']
@@ -310,10 +314,14 @@ exports.getAllOrders = async (req, res) => {
             order: [['id', 'DESC']],
             raw: true
         });
+
         return res.status(200).json({ rows: orders });
     } catch (error) {
         console.log(error);
-        return res.status(500).json({ error: 'Error fetching orders', details: error.message });
+        return res.status(500).json({
+            error: 'Error fetching orders',
+            details: error.message
+        });
     }
 };
 
@@ -326,7 +334,15 @@ exports.getMyOrders = async (req, res) => {
 
         const orders = await Order.findAll({
             where: { user_id: userId },
-            attributes: ['id', 'order_number', 'payment_method', 'total_amount', 'payment_status', 'order_status', 'created_at'],
+            attributes: [
+                'id',
+                'order_number',
+                'payment_method',
+                'payment_status',
+                'order_status',
+                'created_at',
+                [sequelize.literal('subtotal + shipping_fee - discount'), 'total_amount']
+            ],
             order: [['id', 'DESC']],
             raw: true
         });
@@ -334,7 +350,10 @@ exports.getMyOrders = async (req, res) => {
         return res.status(200).json({ rows: orders });
     } catch (error) {
         console.log(error);
-        return res.status(500).json({ error: 'Error fetching your orders', details: error.message });
+        return res.status(500).json({
+            error: 'Error fetching your orders',
+            details: error.message
+        });
     }
 };
 
@@ -344,7 +363,13 @@ exports.getSingleOrder = async (req, res) => {
             where: { id: req.params.id },
             include: [{ model: User, attributes: [] }],
             attributes: [
-                'id', 'order_number', 'total_amount', 'payment_status', 'order_status', 'shipping_address', 'created_at',
+                'id',
+                'order_number',
+                'payment_status',
+                'order_status',
+                'shipping_address',
+                'created_at',
+                [sequelize.literal('subtotal + shipping_fee - discount'), 'total_amount'],
                 [sequelize.col('User.first_name'), 'first_name'],
                 [sequelize.col('User.last_name'), 'last_name'],
                 [sequelize.col('User.email'), 'email']
@@ -353,20 +378,37 @@ exports.getSingleOrder = async (req, res) => {
         });
 
         if (!order) {
-            return res.status(404).json({ success: false, message: 'Order not found' });
+            return res.status(404).json({
+                success: false,
+                message: 'Order not found'
+            });
         }
 
         const items = await OrderItem.findAll({
             where: { order_id: req.params.id },
             include: [{ model: Item, attributes: [] }],
-            attributes: ['quantity', 'price', 'subtotal', [sequelize.col('Item.name'), 'name']],
+            attributes: [
+                'quantity',
+                'price',
+                'subtotal',
+                [sequelize.col('Item.name'), 'name']
+            ],
             raw: true
         });
 
-        return res.status(200).json({ success: true, result: { ...order, items } });
+        return res.status(200).json({
+            success: true,
+            result: {
+                ...order,
+                items
+            }
+        });
     } catch (error) {
         console.log(error);
-        return res.status(500).json({ error: 'Error fetching order', details: error.message });
+        return res.status(500).json({
+            error: 'Error fetching order',
+            details: error.message
+        });
     }
 };
 
@@ -377,22 +419,39 @@ exports.getOrderReceipt = async (req, res) => {
 
         const order = await Order.findOne({
             where: { id, user_id: userId },
-            attributes: ['id', 'order_number', 'total_amount', 'order_status', 'created_at'],
+            attributes: [
+                'id',
+                'order_number',
+                'order_status',
+                'created_at',
+                [sequelize.literal('subtotal + shipping_fee - discount'), 'total_amount']
+            ],
             raw: true
         });
 
         if (!order) {
-            return res.status(404).json({ success: false, message: 'Order not found' });
+            return res.status(404).json({
+                success: false,
+                message: 'Order not found'
+            });
         }
 
         if (order.order_status !== 'Completed') {
-            return res.status(400).json({ success: false, message: 'Receipt is only available for completed orders' });
+            return res.status(400).json({
+                success: false,
+                message: 'Receipt is only available for completed orders'
+            });
         }
 
         const items = await OrderItem.findAll({
             where: { order_id: id },
             include: [{ model: Item, attributes: [] }],
-            attributes: ['quantity', 'price', 'subtotal', [sequelize.col('Item.name'), 'name']],
+            attributes: [
+                'quantity',
+                'price',
+                'subtotal',
+                [sequelize.col('Item.name'), 'name']
+            ],
             raw: true
         });
 
@@ -411,41 +470,74 @@ exports.getOrderReceipt = async (req, res) => {
         }, items);
 
         res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `inline; filename="${order.order_number}.pdf"`);
+        res.setHeader(
+            'Content-Disposition',
+            `inline; filename="${order.order_number}.pdf"`
+        );
+
         return res.send(receiptPdf);
     } catch (error) {
         console.log(error);
-        return res.status(500).json({ error: 'Error generating receipt', details: error.message });
+        return res.status(500).json({
+            error: 'Error generating receipt',
+            details: error.message
+        });
     }
 };
 
 exports.getReceiptByToken = async (req, res) => {
     try {
         const { token } = req.params;
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'xrus-secret');
+        const decoded = jwt.verify(
+            token,
+            process.env.JWT_SECRET || 'xrus-secret'
+        );
 
         if (decoded.type !== 'receipt') {
-            return res.status(401).json({ success: false, message: 'Invalid receipt link' });
+            return res.status(401).json({
+                success: false,
+                message: 'Invalid receipt link'
+            });
         }
 
         const order = await Order.findOne({
-            where: { id: decoded.orderId, user_id: decoded.userId },
-            attributes: ['id', 'order_number', 'total_amount', 'order_status', 'created_at'],
+            where: {
+                id: decoded.orderId,
+                user_id: decoded.userId
+            },
+            attributes: [
+                'id',
+                'order_number',
+                'order_status',
+                'created_at',
+                [sequelize.literal('subtotal + shipping_fee - discount'), 'total_amount']
+            ],
             raw: true
         });
 
         if (!order) {
-            return res.status(404).json({ success: false, message: 'Order not found' });
+            return res.status(404).json({
+                success: false,
+                message: 'Order not found'
+            });
         }
 
         if (order.order_status !== 'Completed') {
-            return res.status(400).json({ success: false, message: 'Receipt is only available for completed orders' });
+            return res.status(400).json({
+                success: false,
+                message: 'Receipt is only available for completed orders'
+            });
         }
 
         const items = await OrderItem.findAll({
             where: { order_id: order.id },
             include: [{ model: Item, attributes: [] }],
-            attributes: ['quantity', 'price', 'subtotal', [sequelize.col('Item.name'), 'name']],
+            attributes: [
+                'quantity',
+                'price',
+                'subtotal',
+                [sequelize.col('Item.name'), 'name']
+            ],
             raw: true
         });
 
@@ -464,13 +556,24 @@ exports.getReceiptByToken = async (req, res) => {
         }, items);
 
         res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `inline; filename="${order.order_number}.pdf"`);
+        res.setHeader(
+            'Content-Disposition',
+            `inline; filename="${order.order_number}.pdf"`
+        );
+
         return res.send(receiptPdf);
     } catch (error) {
         if (error.name === 'TokenExpiredError') {
-            return res.status(401).json({ success: false, message: 'Receipt link has expired' });
+            return res.status(401).json({
+                success: false,
+                message: 'Receipt link has expired'
+            });
         }
-        return res.status(401).json({ success: false, message: 'Invalid receipt link' });
+
+        return res.status(401).json({
+            success: false,
+            message: 'Invalid receipt link'
+        });
     }
 };
 
@@ -483,7 +586,16 @@ exports.updateOrder = async (req, res) => {
             where: { id },
             include: [{ model: User, attributes: [] }],
             attributes: [
-                'id', 'user_id', 'order_number', 'total_amount', 'order_status', 'payment_method', 'shipping_address', 'subtotal', 'shipping_fee', 'discount',
+                'id',
+                'user_id',
+                'order_number',
+                'order_status',
+                'payment_method',
+                'shipping_address',
+                'subtotal',
+                'shipping_fee',
+                'discount',
+                [sequelize.literal('subtotal + shipping_fee - discount'), 'total_amount'],
                 [sequelize.col('User.email'), 'email'],
                 [sequelize.col('User.first_name'), 'first_name'],
                 [sequelize.col('User.last_name'), 'last_name']
@@ -499,23 +611,26 @@ exports.updateOrder = async (req, res) => {
         const nextStatus = order_status || previousStatus;
 
         await Order.update(
-            { order_status: nextStatus, payment_status: payment_status || 'Pending' },
+            {
+                order_status: nextStatus,
+                payment_status: payment_status || 'Pending'
+            },
             { where: { id } }
         );
 
-        // item_id is included now (in addition to the existing fields) so it
-        // can be used both for the receipt PDF/email and for restocking below.
         const items = await OrderItem.findAll({
             where: { order_id: id },
             include: [{ model: Item, attributes: [] }],
-            attributes: ['item_id', 'quantity', 'price', 'subtotal', [sequelize.col('Item.name'), 'name']],
+            attributes: [
+                'item_id',
+                'quantity',
+                'price',
+                'subtotal',
+                [sequelize.col('Item.name'), 'name']
+            ],
             raw: true
         });
 
-        // Cancelling an order (whether via the row "Cancel" action or by
-        // picking "Cancelled" in the status dropdown) returns the ordered
-        // quantities back to stock. Guarded by previousStatus so an order
-        // that's already cancelled doesn't get restocked twice.
         if (nextStatus === 'Cancelled' && previousStatus !== 'Cancelled') {
             for (const item of items) {
                 await Item.update(
@@ -537,30 +652,49 @@ exports.updateOrder = async (req, res) => {
             customer_name: `${order.first_name || ''} ${order.last_name || ''}`.trim(),
             created_at: order.created_at
         };
+
         const receiptDownloadUrl = buildReceiptDownloadUrl(order.id, order.user_id);
 
         console.log('updateOrder: sending update email to', order.email, 'status:', nextStatus);
+
         try {
             const pdfBuf = await buildReceiptPdf(receiptOrder, items);
+
             const info = await sendEmail({
                 email: order.email,
                 subject: 'Order updated',
                 message: `Your order ${order.order_number} has been updated to ${nextStatus}.`,
-                html: buildReceiptEmailHtml('Your order has been updated', receiptOrder, items, receiptDownloadUrl),
+                html: buildReceiptEmailHtml(
+                    'Your order has been updated',
+                    receiptOrder,
+                    items,
+                    receiptDownloadUrl
+                ),
                 attachment: {
                     filename: `${order.order_number}.pdf`,
                     content: pdfBuf
                 }
             });
-            console.log('updateOrder: sendEmail result', info && info.messageId ? info.messageId : info);
+
+            console.log(
+                'updateOrder: sendEmail result',
+                info && info.messageId ? info.messageId : info
+            );
         } catch (emailErr) {
             console.error('updateOrder: sendEmail failed', emailErr);
         }
 
-        return res.status(200).json({ success: true, message: 'Order updated successfully' });
+        return res.status(200).json({
+            success: true,
+            message: 'Order updated successfully'
+        });
+
     } catch (error) {
         console.log(error);
-        return res.status(500).json({ error: 'Error updating order', details: error.message });
+        return res.status(500).json({
+            error: 'Error updating order',
+            details: error.message
+        });
     }
 };
 
@@ -592,10 +726,44 @@ exports.createTestEmail = async (req, res) => {
         let items = [];
 
         if (orderId) {
-            const order = await Order.findOne({ where: { id: orderId }, include: [{ model: User, attributes: [] }], raw: true });
-            if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+            const order = await Order.findOne({
+                where: { id: orderId },
+                include: [{ model: User, attributes: [] }],
+                attributes: [
+                    'id',
+                    'order_number',
+                    'order_status',
+                    'subtotal',
+                    'shipping_fee',
+                    'discount',
+                    'payment_method',
+                    'shipping_address',
+                    'created_at',
+                    [sequelize.literal('subtotal + shipping_fee - discount'), 'total_amount'],
+                    [sequelize.col('User.first_name'), 'first_name'],
+                    [sequelize.col('User.last_name'), 'last_name']
+                ],
+                raw: true
+            });
 
-            items = await OrderItem.findAll({ where: { order_id: orderId }, include: [{ model: Item, attributes: [] }], attributes: ['quantity', 'price', 'subtotal', [sequelize.col('Item.name'), 'name']], raw: true });
+            if (!order) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Order not found'
+                });
+            }
+
+            items = await OrderItem.findAll({
+                where: { order_id: orderId },
+                include: [{ model: Item, attributes: [] }],
+                attributes: [
+                    'quantity',
+                    'price',
+                    'subtotal',
+                    [sequelize.col('Item.name'), 'name']
+                ],
+                raw: true
+            });
 
             receiptOrder = {
                 order_number: order.order_number,
@@ -609,6 +777,7 @@ exports.createTestEmail = async (req, res) => {
                 customer_name: `${order.first_name || ''} ${order.last_name || ''}`.trim(),
                 created_at: order.created_at
             };
+
         } else {
             // Dummy data
             receiptOrder = {
@@ -623,29 +792,111 @@ exports.createTestEmail = async (req, res) => {
                 customer_name: 'Test User',
                 created_at: new Date()
             };
-            items = [{ name: 'Test Item', quantity: 1, price: 100.00, subtotal: 100.00 }];
+
+            items = [
+                {
+                    name: 'Test Item',
+                    quantity: 1,
+                    price: 100.00,
+                    subtotal: 100.00
+                }
+            ];
         }
 
-        if (!email) return res.status(400).json({ success: false, message: 'Email is required' });
+        if (!email) {
+            return res.status(400).json({
+                success: false,
+                message: 'Email is required'
+            });
+        }
 
         console.log('createTestEmail: sending test email to', email);
+
         try {
             const pdf = await buildReceiptPdf(receiptOrder, items);
+
             const info = await sendEmail({
                 email,
                 subject: `Test receipt ${receiptOrder.order_number}`,
                 message: 'This is a test receipt',
-                html: buildReceiptEmailHtml('Test receipt', receiptOrder, items, null),
-                attachment: { filename: `${receiptOrder.order_number}.pdf`, content: pdf }
+                html: buildReceiptEmailHtml(
+                    'Test receipt',
+                    receiptOrder,
+                    items,
+                    null
+                ),
+                attachment: {
+                    filename: `${receiptOrder.order_number}.pdf`,
+                    content: pdf
+                }
             });
-            console.log('createTestEmail: sendEmail result', info && info.messageId ? info.messageId : info);
-            return res.status(200).json({ success: true, info });
+
+            console.log(
+                'createTestEmail: sendEmail result',
+                info && info.messageId ? info.messageId : info
+            );
+
+            return res.status(200).json({
+                success: true,
+                info
+            });
+
         } catch (err) {
             console.error('createTestEmail: sendEmail failed', err);
-            return res.status(500).json({ success: false, error: err.message || err });
+
+            return res.status(500).json({
+                success: false,
+                error: err.message || err
+            });
         }
+
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ error: 'Error sending test email', details: error.message });
+
+        return res.status(500).json({
+            error: 'Error sending test email',
+            details: error.message
+        });
+    }
+};
+
+exports.cancelMyOrder = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { id } = req.params;
+
+        const order = await Order.findOne({
+            where: { id, user_id: userId },
+            attributes: ['id', 'order_status'],
+            raw: true
+        });
+
+        if (!order) {
+            return res.status(404).json({ error: 'Order not found' });
+        }
+
+        if (['Shipped', 'Completed', 'Cancelled'].includes(order.order_status)) {
+            return res.status(400).json({ error: `Order cannot be cancelled once it is ${order.order_status.toLowerCase()}` });
+        }
+
+        const items = await OrderItem.findAll({
+            where: { order_id: id },
+            attributes: ['item_id', 'quantity'],
+            raw: true
+        });
+
+        for (const item of items) {
+            await Item.update(
+                { stock: sequelize.literal(`stock + ${item.quantity}`) },
+                { where: { id: item.item_id } }
+            );
+        }
+
+        await Order.update({ order_status: 'Cancelled' }, { where: { id } });
+
+        return res.status(200).json({ success: true, message: 'Order cancelled successfully' });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({ error: 'Error cancelling order', details: error.message });
     }
 };
