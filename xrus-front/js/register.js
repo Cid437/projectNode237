@@ -1,28 +1,61 @@
 $(document).ready(function () {
     const url = 'http://localhost:4000/'
 
-    $('#home').load('header.html');
+    const resetRegisterValidation = () => {
+        ['#name', '#email', '#password'].forEach((selector) => {
+            const $field = $(selector);
+            $field.removeClass('is-invalid');
+            $field.siblings('.invalid-feedback').text('');
+        });
+    };
+
+    const validateRegisterForm = () => {
+        resetRegisterValidation();
+        let valid = true;
+
+        const name = $('#name').val().trim();
+        const email = $('#email').val().trim();
+        const password = $('#password').val();
+
+        if (!name) {
+            $('#name').addClass('is-invalid').siblings('.invalid-feedback').text('Name is required.');
+            valid = false;
+        }
+        if (!email) {
+            $('#email').addClass('is-invalid').siblings('.invalid-feedback').text('Email is required.');
+            valid = false;
+        } else if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+            $('#email').addClass('is-invalid').siblings('.invalid-feedback').text('Enter a valid email address.');
+            valid = false;
+        }
+        if (!password) {
+            $('#password').addClass('is-invalid').siblings('.invalid-feedback').text('Password is required.');
+            valid = false;
+        } else if (password.length < 6) {
+            $('#password').addClass('is-invalid').siblings('.invalid-feedback').text('Password must be at least 6 characters.');
+            valid = false;
+        }
+
+        return valid;
+    };
+
+    // Header is injected by helpers.js
 
     $('#registerForm').on('submit', function (e) {
         e.preventDefault();
 
-        let name = $('#name').val()
-        let email = $('#email').val()
+        if (!validateRegisterForm()) {
+            return;
+        }
+
+        let name = $('#name').val().trim()
+        let email = $('#email').val().trim()
         let password = $('#password').val()
         let user = {
             name,
             email,
             password,
             username: email.split('@')[0]
-        }
-
-        if (!name || !email || !password) {
-            Swal.fire({ icon: 'warning', text: 'Name, email and password are required' });
-            return;
-        }
-        if (password.length < 6) {
-            Swal.fire({ icon: 'warning', text: 'Password must be at least 6 characters' });
-            return;
         }
 
         $.ajax({

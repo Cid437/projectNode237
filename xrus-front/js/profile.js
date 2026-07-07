@@ -1,15 +1,15 @@
 $(document).ready(function () {
-    const url = 'http://localhost:4000/'
+    const url = 'http://localhost:4000';
+    const buildImageUrl = (image) => {
+        if (!image) return '';
+        if (/^https?:\/\//i.test(image)) return image;
+        return image.startsWith('/') ? `${url}${image}` : `${url}/${image}`;
+    };
 
     $('#avatar').on('change', function () {
-        const file = this.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                $('#avatarPreview').attr('src', e.target.result).show();
-            };
-            reader.readAsDataURL(file);
-        }
+        // Don't show a preview before the image is actually uploaded and saved.
+        // The avatar preview should reflect the saved profile image only.
+        $('#avatarPreview').hide();
     });
 
     $('#profileForm').on('submit', function (event) {
@@ -40,7 +40,7 @@ $(document).ready(function () {
 
         $.ajax({
             method: 'POST',
-            url: `${url}api/v1/update-profile`,
+            url: `${url}/api/v1/update-profile`,
             data: formData,
             contentType: false,
             processData: false,
@@ -51,8 +51,15 @@ $(document).ready(function () {
             success: function (data) {
                 console.log(data);
                 if (data.user && data.user.image_url) {
-                    const imageUrl = data.user.image_url.startsWith('http') ? data.user.image_url : `${url}${data.user.image_url}`;
-                    $('#avatarPreview').attr('src', imageUrl).show();
+                    try {
+                        const src = data.user.image_url;
+                        const imageUrl = buildImageUrl(src);
+                        console.log('profile: avatar URL ->', imageUrl);
+                        $('#avatarPreview').attr('src', imageUrl).show();
+                    } catch (e) {
+                        console.error('profile: invalid image url', data.user.image_url, e);
+                        $('#avatarPreview').hide();
+                    }
                 }
                 Swal.fire({
                     icon: 'success',
@@ -94,7 +101,7 @@ $(document).ready(function () {
     // NEW: load existing profile data
     $.ajax({
         method: 'GET',
-        url: `${url}api/v1/profile`,
+        url: `${url}/api/v1/profile`,
         dataType: 'json',
         headers: { Authorization: 'Bearer ' + token.replace(/^"|"$/g, '') },
             success: function (data) {
@@ -107,8 +114,13 @@ $(document).ready(function () {
             $('#zipcode').val(user.zipcode || '');
 
             if (user.image_url) {
-                const imageUrl = user.image_url.startsWith('http') ? user.image_url : `${url}${user.image_url}`;
-                $('#avatarPreview').attr('src', imageUrl).show();
+                try {
+                    const imageUrl = buildImageUrl(user.image_url);
+                    $('#avatarPreview').attr('src', imageUrl).show();
+                } catch (e) {
+                    console.error('profile: invalid image url', user.image_url, e);
+                    $('#avatarPreview').hide();
+                }
             } else {
                 $('#avatarPreview').hide();
             }

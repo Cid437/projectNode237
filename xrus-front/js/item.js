@@ -2,16 +2,20 @@ $(document).ready(function () {
     const url = 'http://localhost:4000';
     const buildImageUrl = (image) => {
         if (!image) return '';
-        if (/^https?:\/\//i.test(image)) return image;
-        if (image.startsWith('/')) return `${url}${image}`;
-        if (image.startsWith('images/')) return `${url}/${image}`;
-        return `${url}/images/${image}`;
+        const cleaned = image.replace(/\\/g, '/').trim();
+        if (/^https?:\/\//i.test(cleaned)) return cleaned;
+        let relative = cleaned.replace(/^\/+/, '');
+        if (!relative.toLowerCase().startsWith('images/')) {
+            const match = relative.match(/(?:.*\/)?(images\/.+)$/i);
+            if (match) {
+                relative = match[1];
+            }
+        }
+        return `${url}/${relative}`;
     };
     const role = sessionStorage.getItem('role') || 'customer';
 
-    $('#home').load('header.html', function () {
-        $('.admin-only').toggle(role === 'admin');
-    });
+    // Header injected by helpers.js; state is applied there
 
     $('#itemUpdate').hide();
 
@@ -100,21 +104,70 @@ $(document).ready(function () {
         $('#itemSubmit').show();
         $('#itemUpdate').hide();
         $('#itemImagePreviews').empty();
+        resetItemValidation();
     });
+
+  const resetItemValidation = () => {
+        const fields = ['#itemName', '#itemDescription', '#itemBrand', '#itemBuyPrice', '#itemSellPrice', '#itemStock', '#itemCategoryId'];
+        fields.forEach((selector) => {
+            const $field = $(selector);
+            $field.removeClass('is-invalid');
+            $field.siblings('.invalid-feedback').text('');
+        });
+    };
+
+    const validateItemForm = () => {
+        resetItemValidation();
+        let valid = true;
+
+        const name = $('#itemName').val().trim();
+        const description = $('#itemDescription').val().trim();
+        const brand = $('#itemBrand').val().trim();
+        const buyPrice = $('#itemBuyPrice').val();
+        const sellPrice = $('#itemSellPrice').val();
+        const stock = $('#itemStock').val();
+        const categoryId = $('#itemCategoryId').val();
+
+        if (!name) {
+            $('#itemName').addClass('is-invalid').siblings('.invalid-feedback').text('Name is required.');
+            valid = false;
+        }
+        if (!description) {
+            $('#itemDescription').addClass('is-invalid').siblings('.invalid-feedback').text('Description is required.');
+            valid = false;
+        }
+        if (!brand) {
+            $('#itemBrand').addClass('is-invalid').siblings('.invalid-feedback').text('Brand is required.');
+            valid = false;
+        }
+        if (!buyPrice || parseFloat(buyPrice) <= 0) {
+            $('#itemBuyPrice').addClass('is-invalid').siblings('.invalid-feedback').text('Buy Price is required and must be greater than 0.');
+            valid = false;
+        }
+        if (!sellPrice || parseFloat(sellPrice) <= 0) {
+            $('#itemSellPrice').addClass('is-invalid').siblings('.invalid-feedback').text('Sell Price is required and must be greater than 0.');
+            valid = false;
+        }
+        if (!stock || parseInt(stock, 10) < 0) {
+            $('#itemStock').addClass('is-invalid').siblings('.invalid-feedback').text('Stock is required and cannot be negative.');
+            valid = false;
+        }
+        if (!categoryId || parseInt(categoryId, 10) <= 0) {
+            $('#itemCategoryId').addClass('is-invalid').siblings('.invalid-feedback').text('Category ID is required and must be a positive number.');
+            valid = false;
+        }
+
+        return valid;
+    };
 
   $('#itemSubmit').on('click', function (e) {
     e.preventDefault();
     const token = getToken();
     if (!token) return;
 
-    const name = $('#itemName').val().trim();
-    const buyPrice = $('#itemBuyPrice').val();
-    const sellPrice = $('#itemSellPrice').val();
-
-        if (!name || !buyPrice || !sellPrice || parseFloat(buyPrice) <= 0 || parseFloat(sellPrice) <= 0) {
-            Swal.fire({ icon: 'warning', text: 'Name, Buy Price, and Sell Price are required and must be greater than 0' });
-            return;
-        }
+    if (!validateItemForm()) {
+        return;
+    }
 
     const formData = new FormData($('#iform')[0]);
         $.ajax({
@@ -180,16 +233,12 @@ $(document).ready(function () {
         const token = getToken();
         if (!token) return;
         const id = $('#itemId').val();
-        const formData = new FormData($('#iform')[0]);
 
-        const name = $('#itemName').val().trim();
-        const buyPrice = $('#itemBuyPrice').val();
-        const sellPrice = $('#itemSellPrice').val();
-
-        if (!name || !buyPrice || !sellPrice || parseFloat(buyPrice) <= 0 || parseFloat(sellPrice) <= 0) {
-            Swal.fire({ icon: 'warning', text: 'Name, Buy Price, and Sell Price are required and must be greater than 0' });
+        if (!validateItemForm()) {
             return;
         }
+
+        const formData = new FormData($('#iform')[0]);
 
         $.ajax({
             method: 'PUT',
@@ -200,8 +249,9 @@ $(document).ready(function () {
             dataType: 'json',
             headers: { Authorization: `Bearer ${token}` },
             success: function () {
-                $('#itemModal').modal('hide');
-                reloadItems();
+                    $('#itemModal').modal('hide');
+                    reloadItems();
+                    Swal.fire({ icon: 'success', text: 'Item updated successfully', timer: 1200, showConfirmButton: false });
             },
             error: function (error) {
                 console.log(error);

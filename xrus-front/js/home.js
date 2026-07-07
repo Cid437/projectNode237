@@ -1,10 +1,29 @@
 $(document).ready(function () {
-    const url = 'http://localhost:4000/'
+    const url = 'http://localhost:4000';
     const PAGE_SIZE = 8;
     var itemCount = 0;
     var allItems = [];
     var infiniteLoadedCount = 0;
     var isSearchMode = false;
+
+    const buildImageUrl = (image) => {
+        if (!image) return '';
+        const cleaned = image.replace(/\\/g, '/').trim();
+        if (/^https?:\/\//i.test(cleaned)) return cleaned;
+        let relative = cleaned.replace(/^\/+/, '');
+        if (!relative.toLowerCase().startsWith('images/')) {
+            const match = relative.match(/(?:.*\/)?(images\/.+)$/i);
+            if (match) {
+                relative = match[1];
+            }
+        }
+        return `${url}/${relative}`;
+    };
+
+    // Load the shared header into the #home container (no extra callback logic)
+    $('#home').load('header.html');
+    // Load shared footer
+    $('#siteFooter').load('footer.html');
 
     // NOTE: use xrusHelpers.getCart()/saveCart() — scoped per logged-in
     // user (or guest) instead of one shared localStorage('cart') key.
@@ -13,7 +32,7 @@ $(document).ready(function () {
 
     const buildCard = (value) => `<div class="col-md-3 mb-4">
         <div class="card h-100">
-        <img src="${url}${value.image}" class="card-img-top" alt="${value.name}">
+        <img src="${buildImageUrl(value.image)}" class="card-img-top" alt="${value.name}">
         <div class="card-body">
         <h5 class="card-title">${value.name}</h5>
         <p class="card-text">₱ ${value.sell_price}</p>
@@ -85,7 +104,7 @@ $(document).ready(function () {
 
     $.ajax({
         method: 'GET',
-        url: `${url}api/v1/items`,
+        url: `${url}/api/v1/items`,
         dataType: 'json',
         success: function (data) {
             allItems = Array.isArray(data.rows) ? data.rows : [];
@@ -129,28 +148,65 @@ $(document).ready(function () {
             $(document).off('click', '.show-details').on('click', '.show-details', function (e) {
                 e.preventDefault();
                 const id = $(this).data('id');
-                const name = $(this).data('name');
-                const description = $(this).data('description');
-                const price = $(this).data('price');
-                const image = $(this).data('image');
-                const stock = $(this).data('stock');
 
-                $('#productDetailsModalLabel').text(name);
-                $('#productDetailsModalBody').html(`
-                    <img src="${image ? `${url}${image}` : ''}" class="img-fluid mb-3" style="max-height:200px;">
-                    <p>${description || 'No description available.'}</p>
-                    <p id="price">Price: ₱<strong>${price}</strong></p>
-                    <p>Stock: ${stock}</p>
-                    <input type="hidden" id="detailsItemId" value="${id}">
-                    ${stock > 0 ? `
-                        <input type="number" class="form-control mb-3" id="detailsQty" min="1" max="${stock}" value="1">
-                        <button type="button" class="btn btn-primary" id="detailsAddToCart">Add to Cart</button>
-                    ` : `
-                        <p class="text-danger"><strong>Out of stock</strong></p>
-                        <button type="button" class="btn btn-secondary" disabled>Add to Cart</button>
-                    `}
-                `);
-                $('#productDetailsModal').modal('show');
+                // Fetch the full item (including images) from the API so we
+                // can show every picture the item has in the modal.
+                $.ajax({
+                    method: 'GET',
+                    url: `${url}/api/v1/items/${id}`,
+                    dataType: 'json',
+                    success: function (data) {
+                        const item = data.result || {};
+                        const images = Array.isArray(data.images) ? data.images : [];
+                        const mainImage = images.length ? images[0].image_path : item.image || '';
+                        const stock = item.stock || 0;
+
+                        $('#productDetailsModalLabel').text(item.name || 'Item');
+
+                        let galleryHtml = '';
+                        if (mainImage) {
+                            galleryHtml += `<img id="detailsMainImage" src="${buildImageUrl(mainImage)}" class="img-fluid mb-3" style="max-height:300px;">`;
+                        } else {
+                            galleryHtml += `<div class="mb-3">No image available</div>`;
+                        }
+
+                        if (images.length > 1) {
+                            galleryHtml += '<div class="d-flex justify-content-center mb-3" id="detailsThumbs">';
+                            images.forEach(img => {
+                                const src = buildImageUrl(img.image_path);
+                                galleryHtml += `<img src="${src}" class="img-thumbnail mr-2 details-thumb" style="width:80px;height:80px;object-fit:cover;cursor:pointer;">`;
+                            });
+                            galleryHtml += '</div>';
+                        }
+
+                        $('#productDetailsModalBody').html(`
+                            ${galleryHtml}
+                            <p>${item.description || 'No description available.'}</p>
+                            <p id="price">Price: ₱<strong>${item.sell_price || 0}</strong></p>
+                            <p>Stock: ${stock}</p>
+                            <input type="hidden" id="detailsItemId" value="${id}">
+                            ${stock > 0 ? `
+                                <input type="number" class="form-control mb-3" id="detailsQty" min="1" max="${stock}" value="1">
+                                <button type="button" class="btn btn-primary" id="detailsAddToCart">Add to Cart</button>
+                            ` : `
+                                <p class="text-danger"><strong>Out of stock</strong></p>
+                                <button type="button" class="btn btn-secondary" disabled>Add to Cart</button>
+                            `}
+                        `);
+
+                        // Thumbnail click swaps main image
+                        $(document).off('click', '.details-thumb').on('click', '.details-thumb', function () {
+                            const src = $(this).attr('src');
+                            $('#detailsMainImage').attr('src', src);
+                        });
+
+                        $('#productDetailsModal').modal('show');
+                    },
+                    error: function (err) {
+                        console.log(err);
+                        Swal.fire({ icon: 'error', text: 'Unable to load item details.' });
+                    }
+                });
             });
 
             // Autocomplete is an addition on top of the live filter above,
@@ -214,9 +270,5 @@ $(document).ready(function () {
         Swal.fire({ icon: 'success', text: 'Item added to cart', timer: 1000, showConfirmButton: false });
     });
 
-    $('#home').load('header.html', function () {
-        const role = sessionStorage.getItem('role') || 'customer';
-        $('.admin-only').toggle(role === 'admin');
-        $('#roleNotice').text(role === 'admin' ? 'Admin view: you can access items and dashboard.' : 'Customer view: you can browse products and place orders.').show();
-    });
+    // header is loaded separately; initial role notice removed per request
 });

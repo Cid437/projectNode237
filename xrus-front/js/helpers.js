@@ -71,4 +71,25 @@
             }
         }
     };
+    // Auto-load header/footer on pages that include helpers.js
+    $(function () {
+        // Load header into #home if present
+        if ($('#home').length) {
+            $('#home').load('header.html', function () {
+                // Apply header state after insert
+                try { window.xrusHelpers.applyHeaderState(); } catch (e) { console.error(e); }
+                // Update cart badge where applicable
+                try { window.xrusHelpers.updateCartBadge(); } catch (e) { }
+            });
+        }
+
+        // Load footer into #siteFooter if present, otherwise append to body
+        if ($('#siteFooter').length) {
+            $('#siteFooter').load('footer.html');
+        } else {
+            // append footer at the end of body for pages without placeholder
+            $('body').append('<div id="siteFooter"></div>');
+            $('#siteFooter').load('footer.html');
+        }
+    });
 })();

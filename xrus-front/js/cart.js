@@ -60,64 +60,7 @@ $(document).ready(function () {
         $('#cartTable').html(html);
     }
 
-    // Shows the logged-in user's own orders (order number, payment method,
-    // total, payment status, order status). Guests can still view the cart
-    // page, so this only fetches/renders when a token actually exists —
-    // it checks sessionStorage directly instead of calling getToken(),
-    // which would pop a login warning and redirect guests away.
-    function renderMyOrders() {
-        const rawToken = sessionStorage.getItem('token');
-        if (!rawToken) {
-            $('#myOrdersTable').html('<p>Log in to view your order history.</p>');
-            return;
-        }
-        const token = rawToken.replace(/^"|"$/g, '');
-
-        $.ajax({
-            method: 'GET',
-            url: `${url}/api/v1/orders/me`,
-            dataType: 'json',
-            headers: { Authorization: 'Bearer ' + token },
-            success: function (data) {
-                const rows = Array.isArray(data.rows) ? data.rows : [];
-
-                if (!rows.length) {
-                    $('#myOrdersTable').html('<p>You have no orders yet.</p>');
-                    return;
-                }
-
-                let html = `<table class="table table-bordered">
-                    <thead>
-                        <tr>
-                            <th>Order #</th>
-                            <th>Payment Method</th>
-                            <th>Total</th>
-                            <th>Payment Status</th>
-                            <th>Order Status</th>
-                            <th>Date</th>
-                        </tr>
-                    </thead>
-                    <tbody>`;
-
-                rows.forEach((order) => {
-                    html += `<tr>
-                        <td>${order.order_number}</td>
-                        <td>${order.payment_method || ''}</td>
-                        <td>₱ ${Number(order.total_amount || 0).toFixed(2)}</td>
-                        <td>${order.payment_status || 'Pending'}</td>
-                        <td>${order.order_status || 'Pending'}</td>
-                        <td>${order.created_at ? new Date(order.created_at).toLocaleString() : ''}</td>
-                    </tr>`;
-                });
-
-                html += '</tbody></table>';
-                $('#myOrdersTable').html(html);
-            },
-            error: function (error) {
-                console.log(error);
-            }
-        });
-    }
+    // My Orders removed from cart page per design decision.
 
     // Only used inside the checkout flow now — login is enforced at the
     // point of checking out, not just for viewing/using the cart page.
@@ -164,7 +107,7 @@ $(document).ready(function () {
         renderCart();
     });
 
-    $('#home').load("header.html");
+    // Header is loaded globally by helpers.js
 
     $('#checkoutBtn').on('click', function () {
 

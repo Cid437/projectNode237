@@ -1,51 +1,54 @@
-<nav class="navbar navbar-expand-lg navbar-dark site-navbar mb-4">
-  <a class="navbar-brand" href="home.html">Xrus</a>
-  <button
-    class="navbar-toggler"
-    type="button"
-    data-toggle="collapse"
-    data-target="#navbarNav"
-    aria-controls="navbarNav"
-    aria-expanded="false"
-    aria-label="Toggle navigation"
-  >
-    <span class="navbar-toggler-icon"></span>
-  </button>
-  <div class="collapse navbar-collapse" id="navbarNav">
-    <ul class="navbar-nav ml-auto">
-      <li class="nav-item active">
-        <a class="nav-link" href="home.html">Home</a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link" href="cart.html">Cart</a>
-      </li>
-      <li class="nav-item admin-only" style="display:none">
-        <a class="nav-link" href="orders.html">Orders</a>
-      </li>
-      <li class="nav-item auth-only" style="display:none">
-        <a class="nav-link" href="purchases.html">My Purchases</a>
-      </li>
-      <li class="nav-item auth-only" style="display:none">
-        <a class="nav-link" href="profile.html">Profile</a>
-      </li>
-      <li class="nav-item admin-only" style="display:none">
-        <a class="nav-link" href="item.html">Items</a>
-      </li>
-      <li class="nav-item admin-only" style="display:none">
-        <a class="nav-link" href="dashboard.html">Dashboard</a>
-      </li>
-      <li class="nav-item admin-only" style="display:none">
-        <a class="nav-link" href="users.html">Users</a>
-      </li>
-      <li class="nav-item guest-only">
-        <a class="nav-link" href="register.html">Register</a>
-      </li>
-      <li class="nav-item" id="log">
-        <a class="nav-link" href="login.html">Login</a>
-      </li>
-    </ul>
+<header class="site-header mb-4">
+  <div class="header-top py-2">
+    <div class="container d-flex align-items-center justify-content-between">
+      <div class="brand-left d-flex align-items-center">
+        <a class="navbar-brand d-flex align-items-center" href="home.html">
+          <span class="logo-main">Xrus</span>
+          <span class="ml-2 logo-sub" style="margin-left:8px;">Timepieces</span>
+        </a>
+      </div>
+      <div class="header-icons d-flex align-items-center">
+        <!-- cart icon removed per request -->
+        <!-- Account icon replaces Login/Register text links -->
+        <a id="accountLink" class="nav-icon" href="login.html" title="Account"><i class="fas fa-user-circle"></i></a>
+      </div>
+    </div>
   </div>
-</nav>
+
+  <!-- Search removed per request -->
+
+  <nav class="header-nav">
+    <div class="container d-flex align-items-start justify-content-between">
+      <ul class="nav justify-content-start">
+        <li class="nav-item active">
+          <a class="nav-link" href="home.html">Home</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="cart.html">Cart</a>
+        </li>
+        <li class="nav-item admin-only" style="display:none">
+          <a class="nav-link" href="orders.html">Orders</a>
+        </li>
+        <li class="nav-item auth-only" style="display:none">
+          <a class="nav-link" href="purchases.html">My Purchases</a>
+        </li>
+        <li class="nav-item admin-only" style="display:none">
+          <a class="nav-link" href="item.html">Items</a>
+        </li>
+        <li class="nav-item admin-only" style="display:none">
+          <a class="nav-link" href="dashboard.html">Dashboard</a>
+        </li>
+        <li class="nav-item admin-only" style="display:none">
+          <a class="nav-link" href="users.html">Users</a>
+        </li>
+        <!-- Login/Register text links removed; use account icon at top-right -->
+      </ul>
+      <div class="header-logout ml-3" style="align-self:flex-end;">
+        <button id="logoutBtn" class="btn btn-outline-light btn-sm" style="display:none">Logout</button>
+      </div>
+    </div>
+  </nav>
+</header>
 <script>
   (function applyHeaderState() {
     const role = (sessionStorage.getItem('role') || 'customer').toLowerCase();
@@ -65,20 +68,32 @@
       el.style.display = isLoggedIn ? 'none' : '';
     });
 
-    const loginLink = document.querySelector('a.nav-link[href="login.html"]');
-    if (loginLink) {
+    const accountLink = document.getElementById('accountLink');
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
       if (isLoggedIn) {
-        loginLink.textContent = 'Logout';
-        loginLink.href = '#!';
-        loginLink.onclick = function (e) {
+        logoutBtn.style.display = '';
+        logoutBtn.onclick = function (e) {
           e.preventDefault();
           sessionStorage.clear();
           window.location.href = 'login.html';
         };
       } else {
-        loginLink.textContent = 'Login';
-        loginLink.href = 'login.html';
-        loginLink.onclick = null;
+        logoutBtn.style.display = 'none';
+        logoutBtn.onclick = null;
+      }
+    }
+
+    if (accountLink) {
+      if (isLoggedIn) {
+        // when logged in, account icon goes to profile
+        accountLink.href = 'profile.html';
+        accountLink.title = 'Profile';
+        accountLink.onclick = null;
+      } else {
+        accountLink.href = 'login.html';
+        accountLink.title = 'Login / Register';
+        accountLink.onclick = null;
       }
     }
   })();

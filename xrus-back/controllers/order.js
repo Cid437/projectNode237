@@ -900,3 +900,34 @@ exports.cancelMyOrder = async (req, res) => {
         return res.status(500).json({ error: 'Error cancelling order', details: error.message });
     }
 };
+
+// Allow customers to cancel their own orders (returns items to stock)
+exports.cancelOrder = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { id } = req.params;
+
+        const order = await Order.findOne({ where: { id, user_id: userId } });
+        if (!order) {
+            return res.status(404).json({ success: false, message: 'Order not found' });
+        }
+
+        if (order.order_status === 'Cancelled') {
+            return res.status(400).json({ success: false, message: 'Order already cancelled' });
+        }
+
+        // Update status
+        await Order.update({ order_status: 'Cancelled' }, { where: { id } });
+
+        // Restock items
+        const items = await OrderItem.findAll({ where: { order_id: id }, raw: true });
+        for (const it of items) {
+            await Item.update({ stock: sequelize.literal(`stock + ${it.quantity}`) }, { where: { id: it.item_id } });
+        }
+
+        return res.status(200).json({ success: true, message: 'Order cancelled successfully' });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ error: 'Error cancelling order', details: error.message });
+    }
+};

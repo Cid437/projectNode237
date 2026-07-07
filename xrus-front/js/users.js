@@ -23,9 +23,7 @@ $(document).ready(function () {
 
   $('#updateUserBtn').hide();
 
-  $('#home').load('header.html', function () {
-    $('.admin-only').toggle(role === 'admin');
-  });
+  // Header is injected via helpers.js; admin-only visibility handled by helpers.applyHeaderState
 
   // DataTables now handles AJAX loading, pagination, sorting and searching
   const usersTable = $('#usersTable').DataTable({
@@ -82,17 +80,67 @@ $(document).ready(function () {
     usersTable.ajax.reload(null, false);
   };
 
+  const resetUserValidation = () => {
+    ['#userFirstName', '#userLastName', '#userUsername', '#userEmail', '#userPassword'].forEach((selector) => {
+      const $field = $(selector);
+      $field.removeClass('is-invalid');
+      $field.siblings('.invalid-feedback').text('');
+    });
+  };
+
+  const validateUserForm = (isUpdate = false) => {
+    resetUserValidation();
+    let valid = true;
+
+    const firstName = $('#userFirstName').val().trim();
+    const lastName = $('#userLastName').val().trim();
+    const username = $('#userUsername').val().trim();
+    const email = $('#userEmail').val().trim();
+    const password = $('#userPassword').val();
+
+    if (!firstName) {
+      $('#userFirstName').addClass('is-invalid').siblings('.invalid-feedback').text('First name is required.');
+      valid = false;
+    }
+    if (!lastName) {
+      $('#userLastName').addClass('is-invalid').siblings('.invalid-feedback').text('Last name is required.');
+      valid = false;
+    }
+    if (!username) {
+      $('#userUsername').addClass('is-invalid').siblings('.invalid-feedback').text('Username is required.');
+      valid = false;
+    }
+    if (!email) {
+      $('#userEmail').addClass('is-invalid').siblings('.invalid-feedback').text('Email is required.');
+      valid = false;
+    } else if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+      $('#userEmail').addClass('is-invalid').siblings('.invalid-feedback').text('Enter a valid email address.');
+      valid = false;
+    }
+    if (!isUpdate && !password) {
+      $('#userPassword').addClass('is-invalid').siblings('.invalid-feedback').text('Password is required.');
+      valid = false;
+    }
+
+    return valid;
+  };
+
   $('#addUserBtn').on('click', function () {
     $('#userForm')[0].reset();
     $('#userId').val('');
     $('#saveUserBtn').show();
     $('#updateUserBtn').hide();
+    resetUserValidation();
     $('#userModal').modal('show');
   });
 
   $('#saveUserBtn').on('click', function () {
     const token = getToken();
     if (!token) return;
+
+    if (!validateUserForm(false)) {
+      return;
+    }
 
     const payload = {
       first_name: $('#userFirstName').val(),
@@ -103,11 +151,6 @@ $(document).ready(function () {
       role: $('#userRole').val(),
       status: $('#userStatus').val()
     };
-
-    if (!payload.email || !payload.password) {
-      Swal.fire({ icon: 'warning', text: 'Email and password are required' });
-      return;
-    }
 
     $.ajax({
       method: 'POST',
@@ -138,6 +181,7 @@ $(document).ready(function () {
     $('#userStatus').val($(this).data('status'));
     $('#saveUserBtn').hide();
     $('#updateUserBtn').show();
+    resetUserValidation();
     $('#userModal').modal('show');
   });
 

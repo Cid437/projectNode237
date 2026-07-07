@@ -148,6 +148,8 @@ const updateUser = async (req, res) => {
 
         await user.update(updateData);
 
+        console.log('updateUser: saved image_url=', updateData.image_url || user.image_url);
+
         return res.status(200).json({
             success: true,
             message: 'Profile updated successfully',

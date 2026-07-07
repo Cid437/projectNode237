@@ -58,7 +58,7 @@ exports.getSingleItem = async (req, res) => {
 exports.createItem = async (req, res) => {
     try {
         const { name, description, brand, buy_price, sell_price, stock, category_id, status = 'active' } = req.body;
-        const imagePaths = req.files ? req.files.map(file => file.path.replace(/\\/g, '/')) : [];
+        const imagePaths = req.files ? req.files.map(file => `images/${file.filename}`) : [];
         const primaryImage = imagePaths[0] || null;
 
         if (!name || !buy_price || !sell_price) {
@@ -114,7 +114,7 @@ exports.updateItem = async (req, res) => {
             return res.status(404).json({ error: 'Item not found' });
         }
 
-        const newImagePaths = req.files ? req.files.map(file => file.path.replace(/\\/g, '/')) : [];
+        const newImagePaths = req.files ? req.files.map(file => `images/${file.filename}`) : [];
         const imagePath = newImagePaths[0] || current.image;
 
         await current.update({

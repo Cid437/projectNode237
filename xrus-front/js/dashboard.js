@@ -2,9 +2,7 @@ $(document).ready(function () {
     const url = 'http://localhost:4000/'
     const role = sessionStorage.getItem('role') || 'customer';
 
-    $('#home').load('header.html', function () {
-        $('.admin-only').toggle(role === 'admin');
-    });
+    // Header is injected by helpers.js; admin-only state handled there
 
     if (role !== 'admin') {
         Swal.fire({

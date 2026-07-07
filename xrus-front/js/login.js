@@ -1,12 +1,46 @@
 $(document).ready(function () {
     const url = 'http://localhost:4000/'
 
-    $('#home').load('header.html');
+    const resetLoginValidation = () => {
+        ['#email', '#password'].forEach((selector) => {
+            const $field = $(selector);
+            $field.removeClass('is-invalid');
+            $field.siblings('.invalid-feedback').text('');
+        });
+    };
+
+    const validateLoginForm = () => {
+        resetLoginValidation();
+        let valid = true;
+
+        const email = $('#email').val().trim();
+        const password = $('#password').val();
+
+        if (!email) {
+            $('#email').addClass('is-invalid').siblings('.invalid-feedback').text('Email is required.');
+            valid = false;
+        } else if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+            $('#email').addClass('is-invalid').siblings('.invalid-feedback').text('Enter a valid email address.');
+            valid = false;
+        }
+        if (!password) {
+            $('#password').addClass('is-invalid').siblings('.invalid-feedback').text('Password is required.');
+            valid = false;
+        }
+
+        return valid;
+    };
+
+    // Header is injected by helpers.js
 
     $('#loginForm').on('submit', function (e) {
         e.preventDefault();
 
-        let email = $('#email').val()
+        if (!validateLoginForm()) {
+            return;
+        }
+
+        let email = $('#email').val().trim()
         let password = $('#password').val()
         let user = {
             email,

@@ -11,9 +11,7 @@ $(document).ready(function () {
         return;
     }
 
-    $('#home').load('header.html', function () {
-        xrusHelpers.applyHeaderState();
-    });
+    // Header is injected via helpers.js; state will be applied there
 
     $.ajax({
         method: 'GET',
@@ -26,7 +24,6 @@ $(document).ready(function () {
                 $('#ordersList').html('<div class="alert alert-secondary">No purchases yet.</div>');
                 return;
             }
-
             const html = rows.map(function (order) {
                 const receiptBtn = order.order_status === 'Completed'
                     ? `<button class="btn btn-sm btn-outline-secondary viewReceiptBtn" data-id="${order.id}">View Receipt</button>`
@@ -64,7 +61,7 @@ $(document).ready(function () {
                 }).then((result) => {
                     if (!result.isConfirmed) return;
                     $.ajax({
-                        method: 'PUT',
+                        method: 'POST',
                         url: `${url}/api/v1/orders/${id}/cancel`,
                         dataType: 'json',
                         headers: { Authorization: 'Bearer ' + token },
@@ -76,6 +73,31 @@ $(document).ready(function () {
                             Swal.fire({ icon: 'error', text: error.responseJSON?.error || 'Unable to cancel order' });
                         }
                     });
+                });
+            });
+
+            // View receipt (protected endpoint) - fetch PDF blob and open
+            $(document).off('click', '.viewReceiptBtn').on('click', '.viewReceiptBtn', function (e) {
+                e.preventDefault();
+                const id = $(this).data('id');
+                fetch(`${url}/api/v1/orders/${id}/receipt`, {
+                    method: 'GET',
+                    headers: { Authorization: 'Bearer ' + token }
+                }).then(function (resp) {
+                    if (resp.status === 401) {
+                        sessionStorage.clear();
+                        window.location.href = 'login.html';
+                        return null;
+                    }
+                    if (!resp.ok) return resp.json().then(j => { throw new Error(j.message || 'Unable to fetch receipt'); });
+                    return resp.blob();
+                }).then(function (blob) {
+                    if (!blob) return;
+                    const blobUrl = URL.createObjectURL(blob);
+                    window.open(blobUrl, '_blank');
+                }).catch(function (err) {
+                    console.log(err);
+                    Swal.fire({ icon: 'error', text: err.message || 'Unable to open receipt.' });
                 });
             });
         },
