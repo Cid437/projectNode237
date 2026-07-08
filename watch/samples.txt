@@ -1,0 +1,24 @@
+--
+-- Dumping data for table `items` with 2 iconic pieces per category
+--
+
+INSERT INTO `items` (`category_id`, `name`, `description`, `brand`, `buy_price`, `sell_price`, `stock`, `image`, `status`) VALUES
+-- Category 1: Luxury & Dress
+(1, 'Tank Louis Cartier', 'The gold standard of formal dress watches. Features a solid 18k yellow gold rectangular case, silvered dial, and signature blue sapphire cabochon crown.', 'Cartier', 680000.00, 840000.00, 2, 'cartier_tank_louis.jpg', 'active'),
+(1, 'Royal Oak Extra-Thin', 'The legendary ultra-thin luxury masterpiece. Features an iconic octagonal bezel, integrated bracelet, and stunning Bleu Nuit Tapisserie dial.', 'Audemars Piguet', 1800000.00, 2400000.00, 1, 'ap_royal_oak_thin.jpg', 'active'),
+
+-- Category 2: Dive & Sports
+(2, 'Submariner Date \"Starbucks\"', 'The quintessential professional dive watch. Features a vibrant green ceramic Cerachrom bezel insert, black dial, and rugged Oystersteel construction.', 'Rolex', 850000.00, 1140000.00, 3, 'rolex_submariner_green.jpg', 'active'),
+(2, 'Seamaster Diver 300M Co-Axial', 'A legendary professional ocean timepiece featuring a laser-engraved wave-pattern dial, skeleton hands, and a helium escape valve.', 'Omega', 320000.00, 430000.00, 5, 'omega_seamaster_300m.jpg', 'active'),
+
+-- Category 3: Chronographs
+(3, 'Cosmograph Daytona Platinum', 'The peak of motorsport luxury. Crafted in solid platinum with a brown ceramic tachymeter bezel and an exclusive prestige ice-blue dial.', 'Rolex', 5800000.00, 7800000.00, 1, 'rolex_daytona_platinum.jpg', 'active'),
+(3, 'Speedmaster Moonwatch Pro', 'The definitive historical space chronograph. Equipped with the Co-Axial Master Chronometer Calibre 3861 and an asymmetrical step dial.', 'Omega', 480000.00, 640000.00, 4, 'omega_speedmaster_pro.jpg', 'active'),
+
+-- Category 4: Minimalist & Casual
+(4, 'Oyster Perpetual 41', 'Clean, elegant execution of everyday utility. Minimalist dial with highly legible indexes and a robust, versatile steel profile.', 'Rolex', 460000.00, 630000.00, 6, 'rolex_op_41.jpg', 'active'),
+(4, 'Carrera Date Calibre 7', 'A modern, slimmed-down 36mm casual classic inspired by historic racing tracks. Tapered ergonomic lugs with an elegant silver dial.', 'TAG Heuer', 210000.00, 311000.00, 8, 'tag_carrera_date.jpg', 'active'),
+
+-- Category 5: Smart & Hybrid
+(5, 'Connected Calibre E4', 'A striking high-tech luxury smartwatch blending traditional Swiss chronograph architecture with modern performance tracking metrics.', 'TAG Heuer', 110000.00, 160000.00, 10, 'tag_connected_e4.jpg', 'active'),
+(5, 'Connected Porsche Edition', 'Exclusive tech-forward wearable engineered with specialized frozen blue design accents and companion data integration for automotive links.', 'TAG Heuer', 150000.00, 210000.00, 3, 'tag_connected_porsche.jpg', 'active');
