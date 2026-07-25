@@ -280,3 +280,4 @@ ALTER TABLE users ADD COLUMN zipcode VARCHAR(10) DEFAULT NULL AFTER town;
 
 ALTER TABLE orders DROP COLUMN total_amount;
 ALTER TABLE orders DROP COLUMN subtotal;
+
